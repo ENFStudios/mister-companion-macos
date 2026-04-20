@@ -88,7 +88,7 @@ Notes:
 
 Requirements:
 
-- Python 3.10 or newer (tested up to 3.14)
+- Python 3.10 or newer (tested up to 3.13)
 - PyQt6, paramiko, requests, websocket-client, psutil
 
 All dependencies install as prebuilt arm64 wheels, so you normally **do not** need Xcode Command Line Tools. If pip falls back to building a package from source, run `xcode-select --install` once and retry.

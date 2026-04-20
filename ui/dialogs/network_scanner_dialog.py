@@ -206,7 +206,13 @@ class NetworkScannerDialog(QDialog):
         self.worker.ip_found.connect(self.add_result)
         self.worker.status_changed.connect(self.status_label.setText)
         self.worker.scan_finished.connect(self.finish_scan)
+        self.worker.finished.connect(self.on_worker_cleanup)
         self.worker.start()
+
+    def on_worker_cleanup(self):
+        if self.worker is not None:
+            self.worker.deleteLater()
+            self.worker = None
 
     def add_result(self, ip):
         if ip not in self.found_ips:

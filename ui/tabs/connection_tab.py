@@ -183,11 +183,11 @@ class ConnectionTab(QWidget):
         nav_row.setSpacing(8)
 
         self.news_prev_button = QPushButton("◀")
-        self.news_prev_button.setFixedWidth(36)
+        self.news_prev_button.setMinimumWidth(36)
         self.news_prev_button.hide()
 
         self.news_next_button = QPushButton("▶")
-        self.news_next_button.setFixedWidth(36)
+        self.news_next_button.setMinimumWidth(36)
         self.news_next_button.hide()
 
         self.news_counter_label = QLabel("")
@@ -210,7 +210,7 @@ class ConnectionTab(QWidget):
 
         self.news_button = QPushButton("")
         self.news_button.setVisible(False)
-        self.news_button.setFixedWidth(160)
+        self.news_button.setMinimumWidth(160)
 
         self.news_date_label = QLabel("")
         self.news_date_label.setAlignment(Qt.AlignmentFlag.AlignRight)

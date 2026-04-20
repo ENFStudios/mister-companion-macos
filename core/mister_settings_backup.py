@@ -3,10 +3,11 @@ import subprocess
 import sys
 import time
 
+from core.app_paths import user_data_dir
 from core.profile_folder_sync import sanitize_folder_name, ip_to_folder_name
 
 
-MISTER_SETTINGS_ROOT = "MiSTerSettings"
+MISTER_SETTINGS_ROOT = str(user_data_dir() / "MiSTerSettings")
 
 
 def ensure_settings_root_exists():

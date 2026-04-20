@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import os
 import platform
+import plistlib
 import re
 import shutil
 import stat
@@ -32,6 +33,9 @@ def clean_output(text: str) -> str:
     return ANSI_ESCAPE_RE.sub("", text)
 
 
+from core.app_paths import user_data_dir
+
+
 def get_app_base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
@@ -39,7 +43,7 @@ def get_app_base_dir() -> Path:
 
 
 BASE_DIR = get_app_base_dir()
-TOOLS_DIR = BASE_DIR / "tools"
+TOOLS_DIR = user_data_dir() / "tools"
 BALENA_DIR = TOOLS_DIR / "balena-cli"
 MR_FUSION_DIR = TOOLS_DIR / "mr-fusion"
 SUPERSTATION_DIR = TOOLS_DIR / "superstation"
@@ -67,6 +71,45 @@ def _log(log_callback: LogCallback | None, message: str) -> None:
 
 def is_flash_supported() -> bool:
     return platform.system() in {"Windows", "Linux", "Darwin"}
+
+
+DARWIN_HARDCODED_BLOCKED_DRIVES = frozenset({
+    "/dev/disk0", "/dev/disk1", "/dev/disk2", "/dev/disk3",
+})
+
+
+def _assert_darwin_drive_is_safe(drive: str) -> None:
+    base = re.sub(r"s\d+$", "", drive)
+    if base in DARWIN_HARDCODED_BLOCKED_DRIVES:
+        raise RuntimeError(
+            f"Refusing to flash {drive}: matches a macOS system disk pattern. "
+            "Only external removable drives are allowed."
+        )
+
+    try:
+        result = subprocess.run(
+            ["diskutil", "info", "-plist", drive],
+            capture_output=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        raise RuntimeError("diskutil not found; cannot verify drive safety.")
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Could not inspect {drive} with diskutil — refusing to flash."
+        )
+
+    try:
+        info = plistlib.loads(result.stdout)
+    except Exception as exc:
+        raise RuntimeError(f"diskutil output unparseable: {exc}")
+
+    if info.get("Internal") is True:
+        raise RuntimeError(
+            f"Refusing to flash {drive}: diskutil reports Internal=Yes. "
+            "Only external drives are allowed."
+        )
 
 
 def get_platform_key() -> str:
@@ -849,6 +892,9 @@ def flash_image(
 
     if not drive:
         raise RuntimeError("No drive selected.")
+
+    if platform.system() == "Darwin":
+        _assert_darwin_drive_is_safe(drive)
 
     if not has_balena_cli():
         raise RuntimeError("balena CLI is not downloaded yet. Download it first.")

@@ -32,7 +32,7 @@ from ui.dialogs.zapscripts_scan_notice_dialog import ZapScriptsScanNoticeDialog
 
 class ScanWorker(QThread):
     progress = pyqtSignal(int)
-    finished = pyqtSignal(list)
+    scan_done = pyqtSignal(list)
     error = pyqtSignal(str)
     aborted = pyqtSignal()
 
@@ -61,7 +61,7 @@ class ScanWorker(QThread):
                 self.aborted.emit()
                 return
 
-            self.finished.emit(data)
+            self.scan_done.emit(data)
         except Exception as e:
             if str(e) == "__SCAN_ABORTED__":
                 self.aborted.emit()
@@ -79,6 +79,7 @@ class ZapScriptsTab(QWidget):
         self.filtered_entries = []
         self.worker = None
         self.expected_total = 0
+        self._zaparoo_ready = False
 
         self._build_ui()
         self._load_db()
@@ -97,7 +98,7 @@ class ZapScriptsTab(QWidget):
 
         self.scan_btn = QPushButton("Scan")
         self.scan_btn.clicked.connect(self._handle_scan_button)
-        self.scan_btn.setFixedWidth(80)
+        self.scan_btn.setMinimumWidth(80)
 
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
@@ -204,6 +205,8 @@ class ZapScriptsTab(QWidget):
 
     def _update_idle_status(self):
         if not self.connection.is_connected():
+            self._zaparoo_ready = False
+            self._apply_zaparoo_button_state()
             self.progress.setRange(0, 100)
             self.progress.setValue(0)
             self.status.setText("No library found")
@@ -216,16 +219,23 @@ class ZapScriptsTab(QWidget):
 
         if state:
             if not state.get("zaparoo_installed", False):
+                self._zaparoo_ready = False
+                self._apply_zaparoo_button_state()
                 self.progress.setRange(0, 100)
                 self.progress.setValue(0)
                 self.status.setText("Zaparoo is not installed")
                 return
 
             if not state.get("zaparoo_service_enabled", False):
+                self._zaparoo_ready = False
+                self._apply_zaparoo_button_state()
                 self.progress.setRange(0, 100)
                 self.progress.setValue(0)
                 self.status.setText("Zaparoo service is not enabled")
                 return
+
+        self._zaparoo_ready = True
+        self._apply_zaparoo_button_state()
 
         ts = get_last_scan_time(self.db_path) if self.db_path else None
         self.progress.setRange(0, 100)
@@ -236,6 +246,13 @@ class ZapScriptsTab(QWidget):
         else:
             self.progress.setValue(0)
             self.status.setText("No scan has been run yet")
+
+    def _apply_zaparoo_button_state(self):
+        connected = self.connection.is_connected()
+        idle = self.worker is None
+        ready = self._zaparoo_ready
+        self.launch_btn.setEnabled(connected and idle and ready)
+        self.controls_btn.setEnabled(connected and idle and ready)
 
     def _load_db(self):
         self.db_path = self._get_db_path()
@@ -364,9 +381,10 @@ class ZapScriptsTab(QWidget):
 
         self.worker = ScanWorker(self.connection)
         self.worker.progress.connect(self._on_progress)
-        self.worker.finished.connect(self._on_finished)
+        self.worker.scan_done.connect(self._on_finished)
         self.worker.error.connect(self._on_error)
         self.worker.aborted.connect(self._on_aborted)
+        self.worker.finished.connect(self._on_worker_cleanup)
         self.worker.start()
 
     def abort_scan(self):
@@ -420,7 +438,6 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(self.connection.is_connected())
         self.controls_btn.setEnabled(self.connection.is_connected())
-        self.worker = None
         self.expected_total = 0
         self._update_idle_status()
 
@@ -432,7 +449,6 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(self.connection.is_connected())
         self.controls_btn.setEnabled(self.connection.is_connected())
-        self.worker = None
         self.expected_total = 0
 
     def _on_error(self, message):
@@ -443,9 +459,13 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(self.connection.is_connected())
         self.controls_btn.setEnabled(self.connection.is_connected())
-        self.worker = None
         self.expected_total = 0
         QMessageBox.critical(self, "Scan failed", message)
+
+    def _on_worker_cleanup(self):
+        if self.worker is not None:
+            self.worker.deleteLater()
+            self.worker = None
 
     def _get_combined_entries(self):
         scripts = list_scripts(self.connection) if self.connection.is_connected() else []
@@ -550,8 +570,7 @@ class ZapScriptsTab(QWidget):
         connected = self.connection.is_connected()
 
         self.scan_btn.setEnabled(True if self.worker is not None else connected)
-        self.launch_btn.setEnabled(connected and self.worker is None)
-        self.controls_btn.setEnabled(connected and self.worker is None)
+        self._apply_zaparoo_button_state()
 
         self.search.setEnabled(True)
         self.systems.setEnabled(True)

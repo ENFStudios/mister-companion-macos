@@ -473,7 +473,12 @@ class MiSTerSettingsTab(QWidget):
             self.set_notice("")
             return
 
-        fonts = self.scan_remote_fonts()
+        try:
+            fonts = self.scan_remote_fonts()
+        except Exception:
+            self.set_notice("")
+            return
+
         self.cached_font_list = fonts
         self._populate_font_combo_from_list(fonts, self.pending_font_selection)
         self.set_notice("")

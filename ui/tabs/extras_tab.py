@@ -29,7 +29,6 @@ class ExtraTaskWorker(QThread):
     log_line = pyqtSignal(str)
     success = pyqtSignal(str)
     error = pyqtSignal(str)
-    finished_task = pyqtSignal()
     task_result = pyqtSignal(object)
 
     def __init__(self, task_fn, success_message=""):
@@ -52,8 +51,6 @@ class ExtraTaskWorker(QThread):
         except Exception as e:
             detail = traceback.format_exc()
             self.error.emit(f"{str(e)}\n\n{detail}")
-        finally:
-            self.finished_task.emit()
 
 
 class ExtrasTab(QWidget):
@@ -199,7 +196,7 @@ class ExtrasTab(QWidget):
         header_row.addStretch()
 
         self.hide_console_button = QPushButton("Hide")
-        self.hide_console_button.setFixedWidth(70)
+        self.hide_console_button.setMinimumWidth(70)
         header_row.addWidget(self.hide_console_button)
         console_layout.addLayout(header_row)
 
@@ -237,13 +234,13 @@ class ExtrasTab(QWidget):
         layout.setSpacing(10)
 
         self.install_update_3sx_button = QPushButton("Install")
-        self.install_update_3sx_button.setFixedWidth(170)
+        self.install_update_3sx_button.setMinimumWidth(170)
 
         self.upload_afs_button = QPushButton("Upload SF33RD.AFS")
-        self.upload_afs_button.setFixedWidth(190)
+        self.upload_afs_button.setMinimumWidth(190)
 
         self.uninstall_3sx_button = QPushButton("Uninstall")
-        self.uninstall_3sx_button.setFixedWidth(170)
+        self.uninstall_3sx_button.setMinimumWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -426,7 +423,7 @@ class ExtrasTab(QWidget):
         self.current_worker.log_line.connect(self.append_console_line)
         self.current_worker.success.connect(self.on_worker_success)
         self.current_worker.error.connect(self.on_worker_error)
-        self.current_worker.finished_task.connect(self.on_worker_finished)
+        self.current_worker.finished.connect(self.on_worker_finished)
         self.current_worker.task_result.connect(self.on_worker_result)
 
         self.extra_list.setEnabled(False)
@@ -448,7 +445,9 @@ class ExtrasTab(QWidget):
         QMessageBox.warning(self, "Extras", message)
 
     def on_worker_finished(self):
-        self.current_worker = None
+        if self.current_worker is not None:
+            self.current_worker.deleteLater()
+            self.current_worker = None
         self.extra_list.setEnabled(True)
         self.refresh_status()
 

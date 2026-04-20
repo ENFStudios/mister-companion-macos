@@ -168,9 +168,9 @@ class SaveManagerTab(QWidget):
         self.restore_button = QPushButton("Restore Backup")
         self.sync_button = QPushButton("Sync Saves")
 
-        self.backup_button.setFixedWidth(115)
-        self.restore_button.setFixedWidth(115)
-        self.sync_button.setFixedWidth(115)
+        self.backup_button.setMinimumWidth(115)
+        self.restore_button.setMinimumWidth(115)
+        self.sync_button.setMinimumWidth(115)
 
         button_row.addStretch()
         button_row.addWidget(self.backup_button)
@@ -217,8 +217,8 @@ class SaveManagerTab(QWidget):
         self.open_backup_folder_button = QPushButton("Browse Backups")
         self.open_sync_folder_button = QPushButton("Browse Sync Folder")
 
-        self.open_backup_folder_button.setFixedWidth(115)
-        self.open_sync_folder_button.setFixedWidth(132)
+        self.open_backup_folder_button.setMinimumWidth(115)
+        self.open_sync_folder_button.setMinimumWidth(132)
 
         folder_row.addStretch()
         folder_row.addWidget(self.open_backup_folder_button)
@@ -236,7 +236,7 @@ class SaveManagerTab(QWidget):
         log_header_row = QHBoxLayout()
         log_header_row.addStretch()
         self.hide_log_button = QPushButton("Hide")
-        self.hide_log_button.setFixedWidth(80)
+        self.hide_log_button.setMinimumWidth(80)
         log_header_row.addWidget(self.hide_log_button)
         log_group_layout.addLayout(log_header_row)
 
@@ -338,16 +338,21 @@ class SaveManagerTab(QWidget):
         self.worker = SaveManagerWorker(fn)
         self.worker.log.connect(self.log_message)
         self.worker.done.connect(self.on_worker_done)
+        self.worker.finished.connect(self.on_worker_cleanup)
         self.worker.start()
 
     def on_worker_done(self, ok: bool, error_message: str):
         self.set_busy(False)
-        self.worker = None
         self.update_backup_count()
 
         if not ok:
             self.log_message(f"Operation failed: {error_message}")
             QMessageBox.warning(self, "SaveManager", error_message)
+
+    def on_worker_cleanup(self):
+        if self.worker is not None:
+            self.worker.deleteLater()
+            self.worker = None
 
     def backup_saves(self):
         if not self.connection.is_connected():

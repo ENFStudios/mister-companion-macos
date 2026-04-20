@@ -69,7 +69,7 @@ class DeviceTab(QWidget):
         self.usb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.refresh_button = QPushButton("Refresh")
-        self.refresh_button.setFixedWidth(120)
+        self.refresh_button.setMinimumWidth(120)
 
         storage_layout.addWidget(self.sd_title_label)
 
@@ -121,9 +121,9 @@ class DeviceTab(QWidget):
             "Open in Finder" if sys.platform == "darwin" else "Open in Explorer"
         )
 
-        self.enable_smb_button.setFixedWidth(130)
-        self.disable_smb_button.setFixedWidth(130)
-        self.open_share_button.setFixedWidth(140)
+        self.enable_smb_button.setMinimumWidth(130)
+        self.disable_smb_button.setMinimumWidth(130)
+        self.open_share_button.setMinimumWidth(140)
 
         sharing_buttons_row.addStretch()
         sharing_buttons_row.addWidget(self.enable_smb_button)
@@ -147,10 +147,10 @@ class DeviceTab(QWidget):
         reboot_row.setSpacing(16)
 
         self.return_to_menu_button = QPushButton("Return to Menu")
-        self.return_to_menu_button.setFixedWidth(160)
+        self.return_to_menu_button.setMinimumWidth(160)
 
         self.reboot_button = QPushButton("Reboot MiSTer")
-        self.reboot_button.setFixedWidth(160)
+        self.reboot_button.setMinimumWidth(160)
 
         reboot_row.addStretch()
         reboot_row.addWidget(self.return_to_menu_button)
@@ -251,10 +251,13 @@ class DeviceTab(QWidget):
             self.refresh_timer.stop()
             return
 
-        self.apply_connected_state()
-        self.refresh_storage()
-        self.refresh_smb_status()
-        self.refresh_now_playing()
+        try:
+            self.apply_connected_state()
+            self.refresh_storage()
+            self.refresh_smb_status()
+            self.refresh_now_playing()
+        except Exception:
+            self.refresh_timer.stop()
 
     def refresh_storage(self):
         sd_info = get_sd_storage_info(self.connection)

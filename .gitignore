@@ -7,3 +7,7 @@ dist/
 build/
 *.egg-info/
 *.log
+config.json
+tools/
+
+claude.md

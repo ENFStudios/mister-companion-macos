@@ -59,7 +59,6 @@ class ScriptTaskWorker(QThread):
     log_line = pyqtSignal(str)
     success = pyqtSignal(str)
     error = pyqtSignal(str)
-    finished_task = pyqtSignal()
     task_result = pyqtSignal(object)
 
     def __init__(self, task_fn, success_message=""):
@@ -82,8 +81,6 @@ class ScriptTaskWorker(QThread):
         except Exception as e:
             detail = traceback.format_exc()
             self.error.emit(f"{str(e)}\n\n{detail}")
-        finally:
-            self.finished_task.emit()
 
 
 class ScriptsTab(QWidget):
@@ -269,7 +266,7 @@ class ScriptsTab(QWidget):
         bottom_actions_row.addStretch()
 
         self.open_scripts_folder_button = QPushButton("Open Scripts Folder")
-        self.open_scripts_folder_button.setFixedWidth(180)
+        self.open_scripts_folder_button.setMinimumWidth(180)
         bottom_actions_row.addWidget(self.open_scripts_folder_button)
 
         bottom_actions_row.addStretch()
@@ -284,7 +281,7 @@ class ScriptsTab(QWidget):
         header_row.addStretch()
 
         self.hide_console_button = QPushButton("Hide")
-        self.hide_console_button.setFixedWidth(70)
+        self.hide_console_button.setMinimumWidth(70)
         header_row.addWidget(self.hide_console_button)
         console_layout.addLayout(header_row)
 
@@ -358,16 +355,16 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_update_button = QPushButton("Install")
-        self.install_update_button.setFixedWidth(170)
+        self.install_update_button.setMinimumWidth(170)
 
         self.uninstall_update_button = QPushButton("Uninstall")
-        self.uninstall_update_button.setFixedWidth(170)
+        self.uninstall_update_button.setMinimumWidth(170)
 
         self.configure_update_button = QPushButton("Configure")
-        self.configure_update_button.setFixedWidth(190)
+        self.configure_update_button.setMinimumWidth(190)
 
         self.run_update_button = QPushButton("Run")
-        self.run_update_button.setFixedWidth(170)
+        self.run_update_button.setMinimumWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -392,13 +389,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_zaparoo_button = QPushButton("Install")
-        self.install_zaparoo_button.setFixedWidth(170)
+        self.install_zaparoo_button.setMinimumWidth(170)
 
         self.enable_zaparoo_service_button = QPushButton("Enable Service")
-        self.enable_zaparoo_service_button.setFixedWidth(190)
+        self.enable_zaparoo_service_button.setMinimumWidth(190)
 
         self.uninstall_zaparoo_button = QPushButton("Uninstall")
-        self.uninstall_zaparoo_button.setFixedWidth(170)
+        self.uninstall_zaparoo_button.setMinimumWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -418,10 +415,10 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_migrate_button = QPushButton("Install")
-        self.install_migrate_button.setFixedWidth(180)
+        self.install_migrate_button.setMinimumWidth(180)
 
         self.uninstall_migrate_button = QPushButton("Uninstall")
-        self.uninstall_migrate_button.setFixedWidth(180)
+        self.uninstall_migrate_button.setMinimumWidth(180)
 
         layout.addLayout(
             self._build_button_row(
@@ -440,22 +437,22 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_cifs_button = QPushButton("Install")
-        self.install_cifs_button.setFixedWidth(120)
+        self.install_cifs_button.setMinimumWidth(120)
 
         self.configure_cifs_button = QPushButton("Configure")
-        self.configure_cifs_button.setFixedWidth(120)
+        self.configure_cifs_button.setMinimumWidth(120)
 
         self.mount_cifs_button = QPushButton("Mount")
-        self.mount_cifs_button.setFixedWidth(120)
+        self.mount_cifs_button.setMinimumWidth(120)
 
         self.unmount_cifs_button = QPushButton("Unmount")
-        self.unmount_cifs_button.setFixedWidth(120)
+        self.unmount_cifs_button.setMinimumWidth(120)
 
         self.remove_cifs_config_button = QPushButton("Remove Config")
-        self.remove_cifs_config_button.setFixedWidth(130)
+        self.remove_cifs_config_button.setMinimumWidth(130)
 
         self.uninstall_cifs_button = QPushButton("Uninstall")
-        self.uninstall_cifs_button.setFixedWidth(120)
+        self.uninstall_cifs_button.setMinimumWidth(120)
 
         layout.addLayout(
             self._build_button_row(
@@ -482,10 +479,10 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_auto_time_button = QPushButton("Install")
-        self.install_auto_time_button.setFixedWidth(140)
+        self.install_auto_time_button.setMinimumWidth(140)
 
         self.uninstall_auto_time_button = QPushButton("Uninstall")
-        self.uninstall_auto_time_button.setFixedWidth(140)
+        self.uninstall_auto_time_button.setMinimumWidth(140)
 
         layout.addLayout(
             self._build_button_row(
@@ -504,16 +501,16 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_dav_browser_button = QPushButton("Install")
-        self.install_dav_browser_button.setFixedWidth(140)
+        self.install_dav_browser_button.setMinimumWidth(140)
 
         self.configure_dav_browser_button = QPushButton("Configure")
-        self.configure_dav_browser_button.setFixedWidth(140)
+        self.configure_dav_browser_button.setMinimumWidth(140)
 
         self.remove_dav_browser_config_button = QPushButton("Remove Config")
-        self.remove_dav_browser_config_button.setFixedWidth(140)
+        self.remove_dav_browser_config_button.setMinimumWidth(140)
 
         self.uninstall_dav_browser_button = QPushButton("Uninstall")
-        self.uninstall_dav_browser_button.setFixedWidth(140)
+        self.uninstall_dav_browser_button.setMinimumWidth(140)
 
         layout.addLayout(
             self._build_button_row(
@@ -538,22 +535,22 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_ftp_save_sync_button = QPushButton("Install")
-        self.install_ftp_save_sync_button.setFixedWidth(140)
+        self.install_ftp_save_sync_button.setMinimumWidth(140)
 
         self.configure_ftp_save_sync_button = QPushButton("Configure")
-        self.configure_ftp_save_sync_button.setFixedWidth(140)
+        self.configure_ftp_save_sync_button.setMinimumWidth(140)
 
         self.enable_ftp_save_sync_service_button = QPushButton("Enable Service")
-        self.enable_ftp_save_sync_service_button.setFixedWidth(140)
+        self.enable_ftp_save_sync_service_button.setMinimumWidth(140)
 
         self.disable_ftp_save_sync_service_button = QPushButton("Disable Service")
-        self.disable_ftp_save_sync_service_button.setFixedWidth(140)
+        self.disable_ftp_save_sync_service_button.setMinimumWidth(140)
 
         self.remove_ftp_save_sync_config_button = QPushButton("Remove Config")
-        self.remove_ftp_save_sync_config_button.setFixedWidth(140)
+        self.remove_ftp_save_sync_config_button.setMinimumWidth(140)
 
         self.uninstall_ftp_save_sync_button = QPushButton("Uninstall")
-        self.uninstall_ftp_save_sync_button.setFixedWidth(140)
+        self.uninstall_ftp_save_sync_button.setMinimumWidth(140)
 
         layout.addLayout(
             self._build_button_row(
@@ -580,10 +577,10 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_static_wallpaper_button = QPushButton("Install")
-        self.install_static_wallpaper_button.setFixedWidth(150)
+        self.install_static_wallpaper_button.setMinimumWidth(150)
 
         self.uninstall_static_wallpaper_button = QPushButton("Uninstall")
-        self.uninstall_static_wallpaper_button.setFixedWidth(150)
+        self.uninstall_static_wallpaper_button.setMinimumWidth(150)
 
         layout.addLayout(
             self._build_button_row(
@@ -937,7 +934,7 @@ class ScriptsTab(QWidget):
         self.current_worker.success.connect(self.on_worker_success)
         self.current_worker.error.connect(self.on_worker_error)
         self.current_worker.task_result.connect(self.on_worker_result)
-        self.current_worker.finished_task.connect(self.on_worker_finished)
+        self.current_worker.finished.connect(self.on_worker_finished)
         self.current_worker.start()
 
     def on_worker_success(self, message):
@@ -959,7 +956,9 @@ class ScriptsTab(QWidget):
                 self.main_window.start_reboot_reconnect_polling()
 
     def on_worker_finished(self):
-        self.current_worker = None
+        if self.current_worker is not None:
+            self.current_worker.deleteLater()
+            self.current_worker = None
 
         if self.waiting_for_reboot_reconnect:
             return

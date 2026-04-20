@@ -37,7 +37,6 @@ class FlashWorker(QThread):
     log_line = pyqtSignal(str)
     success = pyqtSignal(str)
     error = pyqtSignal(str)
-    finished_task = pyqtSignal()
     drives_loaded = pyqtSignal(list)
 
     def __init__(self, task_fn, success_message="", emit_drives=False):
@@ -62,8 +61,6 @@ class FlashWorker(QThread):
         except Exception as e:
             detail = traceback.format_exc()
             self.error.emit(f"{str(e)}\n\n{detail}")
-        finally:
-            self.finished_task.emit()
 
 
 class FlashTab(QWidget):
@@ -231,7 +228,7 @@ class FlashTab(QWidget):
         log_button_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.toggle_log_button = QPushButton("Show Log")
-        self.toggle_log_button.setFixedWidth(100)
+        self.toggle_log_button.setMinimumWidth(100)
         log_button_row.addWidget(self.toggle_log_button)
 
         main_layout.addLayout(log_button_row)
@@ -486,7 +483,9 @@ class FlashTab(QWidget):
         QMessageBox.critical(self, "Error", message)
 
     def on_task_finished(self):
-        self.current_worker = None
+        if self.current_worker is not None:
+            self.current_worker.deleteLater()
+            self.current_worker = None
         self.set_busy(False)
 
     def start_worker(self, task_fn, success_message="", emit_drives=False):
@@ -504,7 +503,7 @@ class FlashTab(QWidget):
         self.current_worker.log_line.connect(self.append_log)
         self.current_worker.success.connect(self.on_task_success)
         self.current_worker.error.connect(self.on_task_error)
-        self.current_worker.finished_task.connect(self.on_task_finished)
+        self.current_worker.finished.connect(self.on_task_finished)
 
         if emit_drives:
             self.current_worker.drives_loaded.connect(self.populate_drives)
@@ -668,8 +667,25 @@ class FlashTab(QWidget):
         if confirm != QMessageBox.StandardButton.Yes:
             return
 
+        from PyQt6.QtWidgets import QInputDialog, QLineEdit
+
+        drive_tail = drive.rsplit("/", 1)[-1]
+        typed, ok = QInputDialog.getText(
+            self,
+            "Type to confirm flash",
+            f"LAST chance to cancel.\n\n"
+            f"Target: {drive}\n\n"
+            f"Type exactly: {drive_tail}",
+        )
+        if not ok or typed.strip() != drive_tail:
+            QMessageBox.information(
+                self,
+                "Flash cancelled",
+                "Confirmation text did not match. Flash cancelled.",
+            )
+            return
+
         if platform.system() == "Darwin":
-            from PyQt6.QtWidgets import QInputDialog, QLineEdit
             password, ok = QInputDialog.getText(
                 self,
                 "Administrator Password Required",

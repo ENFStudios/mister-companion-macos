@@ -6,11 +6,12 @@ import sys
 import time
 from pathlib import Path
 
+from core.app_paths import user_data_dir
 from core.config import save_config
 from core.profile_folder_sync import get_profile_or_ip_folder_name
 
 
-SAVE_ROOT = Path("SaveManager")
+SAVE_ROOT = user_data_dir() / "SaveManager"
 BACKUP_ROOT = SAVE_ROOT / "backups"
 SYNC_ROOT = SAVE_ROOT / "sync"
 

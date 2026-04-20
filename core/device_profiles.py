@@ -1,16 +1,16 @@
-from pathlib import Path
-
+from core.app_paths import user_data_dir
 from core.config import save_config
 
 
 def get_profile_sync_roots():
-    roots = ["MiSTerSettings"]
+    data_root = user_data_dir()
+    save_root = data_root / "SaveManager"
 
-    save_root = Path("SaveManager")
-    roots.append(str(save_root / "backups"))
-    roots.append(str(save_root / "sync"))
-
-    return roots
+    return [
+        str(data_root / "MiSTerSettings"),
+        str(save_root / "backups"),
+        str(save_root / "sync"),
+    ]
 
 
 def get_devices(config_data):

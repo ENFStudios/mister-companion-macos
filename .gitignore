@@ -11,3 +11,7 @@ config.json
 tools/
 
 claude.md
+handoff.md
+RELEASE.md
+release.sh
+NEW_MACHINE.md

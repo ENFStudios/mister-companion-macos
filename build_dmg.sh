@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="MiSTer Companion"
-VERSION="3.4.4"
+VERSION="3.5.1"
 BUNDLE_ID="io.github.anime0t4ku.mistercompanion"
 APP_PATH="dist/${APP_NAME}.app"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"

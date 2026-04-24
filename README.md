@@ -32,7 +32,7 @@ Latest releases: [github.com/ENFStudios/mister-companion-macos/releases](https:/
 
 ## Installation (DMG)
 
-The DMG is signed with an Apple Developer ID and notarized by Apple — no Gatekeeper workaround needed.
+The DMG is signed with an Apple Developer ID and notarized by Apple.
 
 1. Download `MiSTer Companion-<version>.dmg` from the Releases page.
 2. Open the DMG. A window opens showing the app icon and an `Applications` shortcut — drag **MiSTer Companion** onto `Applications`.

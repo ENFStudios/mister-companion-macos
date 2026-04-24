@@ -32,29 +32,12 @@ Latest releases: [github.com/ENFStudios/mister-companion-macos/releases](https:/
 
 ## Installation (DMG)
 
+The DMG is signed with an Apple Developer ID and notarized by Apple — no Gatekeeper workaround needed.
+
 1. Download `MiSTer Companion-<version>.dmg` from the Releases page.
 2. Open the DMG. A window opens showing the app icon and an `Applications` shortcut — drag **MiSTer Companion** onto `Applications`.
 3. Eject the DMG.
-
-### First Launch — Gatekeeper Warning
-
-Because this build is not signed with a paid Apple Developer ID, macOS Gatekeeper will block the first launch. The dialog you see depends on your macOS version — on **macOS 15 Sequoia and newer** the dialog only offers **Done** and **Move to Bin**; there is no longer an "Open Anyway" button in the dialog itself, and the Control-click → Open workaround has also been removed by Apple.
-
-To approve the app, use **System Settings**:
-
-1. Double-click **MiSTer Companion** once so macOS registers it as blocked, then dismiss the warning.
-2. Open **System Settings → Privacy & Security**.
-3. Scroll to the bottom — you should see a message like *"MiSTer Companion" was blocked to protect your Mac.*
-4. Click **Open Anyway** and authenticate with Touch ID or your password.
-5. The next time you launch the app, confirm **Open** in the final dialog.
-
-From then on you can start it normally via double-click, Dock, or Spotlight.
-
-> **On macOS 14 Sonoma and earlier:** right-clicking (or Ctrl-clicking) the app in Finder and choosing **Open** also works. This shortcut was removed in Sequoia.
-
-### Why the warning?
-
-The DMG is built with an **ad-hoc code signature** only — there is no paid Apple Developer ID behind it, and the app is not notarized. macOS therefore requires a one-time manual override. This is expected behavior for community builds; the app binary itself is unmodified.
+4. Launch the app — on first run macOS shows the standard *"downloaded from the Internet"* dialog; click **Open** to confirm.
 
 ### Where user data is stored
 
@@ -130,6 +113,18 @@ Build the DMG:
 
 The DMG is written to `dist/MiSTer Companion-<version>.dmg`. The build script also cleans stale Launch Services entries left behind by previously mounted DMG volumes, so double-clicking `dist/MiSTer Companion.app` keeps working after multiple builds.
 
+### Gatekeeper Override (no Apple Developer ID)
+
+If you build the DMG yourself without a paid Apple Developer ID, the result is only ad-hoc signed and macOS Gatekeeper will block the first launch. On **macOS 15 Sequoia and newer**, the dialog only offers **Done** and **Move to Bin**; the Control-click → Open shortcut has also been removed by Apple. To approve the app:
+
+1. Double-click **MiSTer Companion** once so macOS registers it as blocked, then dismiss the warning.
+2. Open **System Settings → Privacy & Security**.
+3. Scroll to the bottom — you should see *"MiSTer Companion" was blocked to protect your Mac.*
+4. Click **Open Anyway** and authenticate with Touch ID or your password.
+5. On the next launch, confirm **Open** in the final dialog.
+
+From then on you can start it normally via double-click, Dock, or Spotlight. *On macOS 14 Sonoma and earlier* the Control-click → Open shortcut still works.
+
 ---
 
 ## Features
@@ -188,7 +183,6 @@ MiSTer Companion uses a tabbed interface to organize functionality.
 ## Known Limitations
 
 - **Apple Silicon only.** An Intel build is not provided; building one from source on an Intel Mac is untested.
-- **Ad-hoc signed, not notarized.** First launch requires the manual Gatekeeper override described above.
 - **No auto-update mechanism.** New versions must be downloaded and installed manually.
 
 ---

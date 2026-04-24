@@ -15,3 +15,6 @@ handoff.md
 RELEASE.md
 release.sh
 NEW_MACHINE.md
+
+notary_setup.sh
+notary_info.sh

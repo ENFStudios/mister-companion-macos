@@ -22,6 +22,9 @@ from core.config import save_config
 NEWSWIDGET_URL = "https://raw.githubusercontent.com/Anime0t4ku/mister-companion/main/newswidget.json"
 NEWS_ROTATION_INTERVAL_MS = 10000
 
+MACOS_RELEASE_URL = "https://github.com/ENFStudios/mister-companion-macos/releases/latest"
+UPSTREAM_RELEASE_URL_FRAGMENT = "anime0t4ku/mister-companion/releases"
+
 
 class ConnectionTab(QWidget):
     def __init__(self, main_window):
@@ -212,12 +215,17 @@ class ConnectionTab(QWidget):
         self.news_button.setVisible(False)
         self.news_button.setMinimumWidth(160)
 
+        self.news_button_macos = QPushButton("Download for macOS")
+        self.news_button_macos.setVisible(False)
+        self.news_button_macos.setMinimumWidth(160)
+
         self.news_date_label = QLabel("")
         self.news_date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.news_date_label.setStyleSheet("color: gray;")
 
         button_row = QHBoxLayout()
         button_row.addWidget(self.news_button)
+        button_row.addWidget(self.news_button_macos)
         button_row.addStretch()
 
         news_layout.addLayout(nav_row)
@@ -257,6 +265,7 @@ class ConnectionTab(QWidget):
         self.look_for_ssh_keys_checkbox.toggled.connect(self.handle_ssh_option_changed)
 
         self.news_button.clicked.connect(self.open_news_link)
+        self.news_button_macos.clicked.connect(self.open_macos_release_link)
         self.news_prev_button.clicked.connect(self.show_previous_news)
         self.news_next_button.clicked.connect(self.show_next_news)
 
@@ -358,6 +367,9 @@ class ConnectionTab(QWidget):
             self.news_url = ""
             self.news_button.setVisible(False)
 
+        is_upstream_release = UPSTREAM_RELEASE_URL_FRAGMENT in url.lower()
+        self.news_button_macos.setVisible(is_upstream_release)
+
         if date_text:
             self.news_date_label.setText(f"Posted: {date_text}")
             self.news_date_label.show()
@@ -399,6 +411,9 @@ class ConnectionTab(QWidget):
     def open_news_link(self):
         if self.news_url:
             webbrowser.open(self.news_url)
+
+    def open_macos_release_link(self):
+        webbrowser.open(MACOS_RELEASE_URL)
 
     # =============================
     # Connection Logic

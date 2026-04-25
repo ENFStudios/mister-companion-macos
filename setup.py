@@ -11,7 +11,7 @@ OPTIONS = {
     "plist": {
         "CFBundleName": "MiSTer Companion",
         "CFBundleDisplayName": "MiSTer Companion",
-        "CFBundleIdentifier": "io.github.anime0t4ku.mistercompanion",
+        "CFBundleIdentifier": "com.enfstudios.mistercompanion",
         "CFBundleVersion": "3.5.1",
         "CFBundleShortVersionString": "3.5.1",
         "NSHighResolutionCapable": True,

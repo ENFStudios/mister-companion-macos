@@ -24,7 +24,7 @@ Latest releases: [github.com/ENFStudios/mister-companion-macos/releases](https:/
 
 ## System Requirements
 
-- **Apple Silicon Mac** (M1 / M2 / M3 / M4 or newer) — arm64 only. No Intel (x86_64) build is provided.
+- **Apple Silicon Mac** (M1 or newer)
 - **macOS 11 Big Sur** or later.
 - A MiSTer FPGA reachable over the local network via SSH.
 

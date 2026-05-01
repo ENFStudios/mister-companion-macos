@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
 
         self._closing = False
 
-        self.setWindowTitle("MiSTer Companion v3.6.0 By Anime0t4ku (macOS by ENF)")
+        self.setWindowTitle("MiSTer Companion v3.7.0 By Anime0t4ku (macOS by ENF)")
         self.resize(900, 900)
 
         if ICON_PATH.exists():

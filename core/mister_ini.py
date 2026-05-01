@@ -96,20 +96,25 @@ def easy_mode_values_from_ini_settings(settings):
     values["hdmi_limited"] = "Limited Range" if limited == "1" else "Full Range"
 
     vga_mode = settings.get("vga_mode", "rgb").strip().lower()
-    composite_sync = settings.get("composite_sync", "0").strip()
+    composite_sync = settings.get("composite_sync", "1").strip()
     vga_sog = settings.get("vga_sog", "0").strip()
+    vga_scaler = settings.get("vga_scaler", "0").strip()
 
     if vga_mode == "ypbpr":
         values["analogue"] = "Component (YPbPr)"
     elif vga_mode == "svideo":
         values["analogue"] = "S-Video"
     elif vga_mode == "rgb":
-        if vga_sog == "1":
-            values["analogue"] = "RGB (PVM/BVM)"
-        elif composite_sync == "1":
-            values["analogue"] = "RGB (Consumer TV)"
-        else:
+        if vga_scaler == "1" and composite_sync == "0" and vga_sog == "0":
             values["analogue"] = "VGA Monitor"
+        elif composite_sync == "1" and vga_sog == "1":
+            values["analogue"] = "RGB (PVM/BVM SoG Alt)"
+        elif composite_sync == "1" and vga_sog == "0":
+            values["analogue"] = "RGB (PVM/BVM)"
+        elif composite_sync == "0" and vga_sog == "0":
+            values["analogue"] = "VGA Monitor"
+        else:
+            values["analogue"] = "RGB (Consumer TV)"
     else:
         values["analogue"] = "RGB (Consumer TV)"
 
@@ -148,26 +153,42 @@ def build_easy_mode_settings(easy_values):
     settings["hdmi_limited"] = "1" if limited == "Limited Range" else "0"
 
     analogue = easy_values.get("analogue", "").strip()
+
     if analogue == "RGB (Consumer TV)":
         settings["vga_mode"] = "rgb"
         settings["composite_sync"] = "1"
         settings["vga_sog"] = "0"
+        settings["vga_scaler"] = "0"
+
     elif analogue == "RGB (PVM/BVM)":
         settings["vga_mode"] = "rgb"
-        settings["composite_sync"] = "0"
+        settings["composite_sync"] = "1"
+        settings["vga_sog"] = "0"
+        settings["vga_scaler"] = "0"
+
+    elif analogue == "RGB (PVM/BVM SoG Alt)":
+        settings["vga_mode"] = "rgb"
+        settings["composite_sync"] = "1"
         settings["vga_sog"] = "1"
+        settings["vga_scaler"] = "0"
+
     elif analogue == "Component (YPbPr)":
         settings["vga_mode"] = "ypbpr"
         settings["composite_sync"] = "0"
         settings["vga_sog"] = "0"
+        settings["vga_scaler"] = "0"
+
     elif analogue == "S-Video":
         settings["vga_mode"] = "svideo"
         settings["composite_sync"] = "0"
         settings["vga_sog"] = "0"
+        settings["vga_scaler"] = "0"
+
     elif analogue == "VGA Monitor":
         settings["vga_mode"] = "rgb"
         settings["composite_sync"] = "0"
         settings["vga_sog"] = "0"
+        settings["vga_scaler"] = "1"
 
     logo = easy_values.get("logo", "").strip()
     settings["logo"] = "1" if logo == "Enabled" else "0"
@@ -244,6 +265,7 @@ def update_mister_ini_text(ini_text, updated_settings):
                 new_lines.append(DEFAULT_FONT_LINE)
             else:
                 new_lines.append(f"{key}={value}")
+
     elif in_mister_section:
         for key, value in updated_settings.items():
             if key not in replaced_keys:
@@ -252,4 +274,4 @@ def update_mister_ini_text(ini_text, updated_settings):
                 else:
                     new_lines.append(f"{key}={value}")
 
-    return "\n".join(new_lines) + "\n"
+    return "\n".join(new_lines).rstrip("\n") + "\n"

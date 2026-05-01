@@ -188,10 +188,12 @@ class UpdateAllConfigDialog(QDialog):
         # ===== Community Sources =====
         community_group = self._group("Community Sources", self.left_column_layout)
         self.insert_coin_check = QCheckBox("Insert-Coin")
+        self.mister_frontier_check = QCheckBox("MiSTer Frontier")
         self.pcn_premium_wallpapers_check = QCheckBox("PCN Premium Member Wallpapers")
 
         for widget in [
             self.insert_coin_check,
+            self.mister_frontier_check,
             self.pcn_premium_wallpapers_check,
         ]:
             self._add(community_group, widget)
@@ -528,6 +530,7 @@ class UpdateAllConfigDialog(QDialog):
         self.bootroms_check.setChecked(data["bootroms"])
         self.gba_borders_check.setChecked(data["gbaborders"])
         self.insert_coin_check.setChecked(data["insert_coin"])
+        self.mister_frontier_check.setChecked(data["mister_frontier"])
         self.anime0t4ku_wallpapers_check.setChecked(data["anime0t4ku_wallpapers"])
         self.pcn_challenge_wallpapers_check.setChecked(data["pcn_challenge_wallpapers"])
         self.pcn_premium_wallpapers_check.setChecked(data["pcn_premium_wallpapers"])
@@ -566,6 +569,7 @@ class UpdateAllConfigDialog(QDialog):
             "bootroms": self.bootroms_check.isChecked(),
             "gbaborders": self.gba_borders_check.isChecked(),
             "insert_coin": self.insert_coin_check.isChecked(),
+            "mister_frontier": self.mister_frontier_check.isChecked(),
             "anime0t4ku_wallpapers": self.anime0t4ku_wallpapers_check.isChecked(),
             "pcn_challenge_wallpapers": self.pcn_challenge_wallpapers_check.isChecked(),
             "pcn_premium_wallpapers": self.pcn_premium_wallpapers_check.isChecked(),

@@ -201,6 +201,7 @@ def load_update_all_config(connection):
             "bootroms": is_enabled("uberyoji_mister_boot_roms_mgl"),
             "gbaborders": is_enabled("Dinierto/MiSTer-GBA-Borders"),
             "insert_coin": is_enabled("funkycochise/Insert-Coin"),
+            "mister_frontier": is_enabled("MiSTerOrganize/MiSTer_Frontier"),
             "anime0t4ku_wallpapers": is_enabled("anime0t4ku_wallpapers"),
             "pcn_challenge_wallpapers": is_enabled("pcn_challenge_wallpapers"),
             "pcn_premium_wallpapers": is_enabled("pcn_premium_wallpapers"),
@@ -350,7 +351,7 @@ def save_update_all_config(connection, config):
             main_lines,
             [
                 "[llapi_folder]",
-                "db_url = https://raw.githubusercontent.com/MiSTer-LLAPI/LLAPI_folder_MiSTer/main/llapidb.json.zip",
+                "db_url = https://raw.githubusercontent.com/MiSTer-LLAPI/LLAPI_folder_MiSTer/main/llapidb.json",
             ],
         )
         main_lines = handle_simple_section(
@@ -504,6 +505,15 @@ def save_update_all_config(connection, config):
             [
                 "[funkycochise/Insert-Coin]",
                 "db_url = https://raw.githubusercontent.com/funkycochise/Insert-Coin/db/db.json.zip",
+            ],
+        )
+        main_lines = handle_simple_section(
+            "MiSTerOrganize/MiSTer_Frontier",
+            config.get("mister_frontier", False),
+            main_lines,
+            [
+                "[MiSTerOrganize/MiSTer_Frontier]",
+                "db_url = https://raw.githubusercontent.com/MiSTerOrganize/MiSTer_Frontier/db/db.json.zip",
             ],
         )
         main_lines = handle_simple_section(

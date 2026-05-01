@@ -19,12 +19,18 @@ from PyQt6.QtWidgets import (
 
 from core.extras_actions import (
     get_3sx_status,
+    get_openbor_4086_status,
+    get_openbor_7533_status,
     get_pico8_status,
     get_sonic_mania_status,
     install_or_update_3sx as backend_install_or_update_3sx,
+    install_or_update_openbor_4086 as backend_install_or_update_openbor_4086,
+    install_or_update_openbor_7533 as backend_install_or_update_openbor_7533,
     install_or_update_pico8 as backend_install_or_update_pico8,
     install_or_update_sonic_mania as backend_install_or_update_sonic_mania,
     uninstall_3sx as backend_uninstall_3sx,
+    uninstall_openbor_4086 as backend_uninstall_openbor_4086,
+    uninstall_openbor_7533 as backend_uninstall_openbor_7533,
     uninstall_pico8 as backend_uninstall_pico8,
     uninstall_sonic_mania as backend_uninstall_sonic_mania,
     upload_3sx_afs as backend_upload_3sx_afs,
@@ -63,6 +69,8 @@ class ExtraTaskWorker(QThread):
 class ExtrasTab(QWidget):
     EXTRA_3SX = "3sx_mister"
     EXTRA_PICO8 = "mister_pico8"
+    EXTRA_OPENBOR_4086 = "mister_openbor_4086"
+    EXTRA_OPENBOR_7533 = "mister_openbor_7533"
     EXTRA_SONIC_MANIA = "sonic_mania_mister"
 
     def __init__(self, main_window):
@@ -76,12 +84,16 @@ class ExtrasTab(QWidget):
         self.extra_display_order = [
             self.EXTRA_3SX,
             self.EXTRA_PICO8,
+            self.EXTRA_OPENBOR_4086,
+            self.EXTRA_OPENBOR_7533,
             self.EXTRA_SONIC_MANIA,
         ]
 
         self.extra_titles = {
             self.EXTRA_3SX: "3S-ARM",
             self.EXTRA_PICO8: "MiSTer Pico-8",
+            self.EXTRA_OPENBOR_4086: "MiSTer OpenBOR 4086",
+            self.EXTRA_OPENBOR_7533: "MiSTer OpenBOR 7533",
             self.EXTRA_SONIC_MANIA: "Sonic Mania MiSTer",
         }
 
@@ -93,6 +105,14 @@ class ExtrasTab(QWidget):
             self.EXTRA_PICO8: (
                 "Install, update, and uninstall MiSTer Pico-8 directly from MiSTer Companion."
             ),
+            self.EXTRA_OPENBOR_4086: (
+                "Install, update, and uninstall MiSTer OpenBOR 4086 directly from "
+                "MiSTer Companion. The Paks folder is preserved when uninstalling."
+            ),
+            self.EXTRA_OPENBOR_7533: (
+                "Install, update, and uninstall MiSTer OpenBOR 7533 directly from "
+                "MiSTer Companion. The Paks folder is preserved when uninstalling."
+            ),
             self.EXTRA_SONIC_MANIA: (
                 "Install, update, upload Data.rsdk, and uninstall Sonic Mania MiSTer "
                 "directly from MiSTer Companion."
@@ -102,6 +122,8 @@ class ExtrasTab(QWidget):
         self.extra_status_texts = {
             self.EXTRA_3SX: "Unknown",
             self.EXTRA_PICO8: "Unknown",
+            self.EXTRA_OPENBOR_4086: "Unknown",
+            self.EXTRA_OPENBOR_7533: "Unknown",
             self.EXTRA_SONIC_MANIA: "Unknown",
         }
 
@@ -196,11 +218,15 @@ class ExtrasTab(QWidget):
 
         self.threesx_actions_widget = self._build_3sx_actions()
         self.pico8_actions_widget = self._build_pico8_actions()
+        self.openbor_4086_actions_widget = self._build_openbor_4086_actions()
+        self.openbor_7533_actions_widget = self._build_openbor_7533_actions()
         self.sonic_mania_actions_widget = self._build_sonic_mania_actions()
 
         self.extra_action_widgets = {
             self.EXTRA_3SX: self.threesx_actions_widget,
             self.EXTRA_PICO8: self.pico8_actions_widget,
+            self.EXTRA_OPENBOR_4086: self.openbor_4086_actions_widget,
+            self.EXTRA_OPENBOR_7533: self.openbor_7533_actions_widget,
             self.EXTRA_SONIC_MANIA: self.sonic_mania_actions_widget,
         }
 
@@ -239,16 +265,30 @@ class ExtrasTab(QWidget):
         self._select_initial_extra()
 
         self.extra_list.currentItemChanged.connect(self.on_extra_selection_changed)
+
         self.install_update_3sx_button.clicked.connect(self.install_or_update_3sx)
         self.upload_afs_button.clicked.connect(self.upload_sf33rd_afs)
         self.uninstall_3sx_button.clicked.connect(self.uninstall_3sx)
+
         self.install_update_pico8_button.clicked.connect(self.install_or_update_pico8)
         self.uninstall_pico8_button.clicked.connect(self.uninstall_pico8)
+
+        self.install_update_openbor_4086_button.clicked.connect(
+            self.install_or_update_openbor_4086
+        )
+        self.uninstall_openbor_4086_button.clicked.connect(self.uninstall_openbor_4086)
+
+        self.install_update_openbor_7533_button.clicked.connect(
+            self.install_or_update_openbor_7533
+        )
+        self.uninstall_openbor_7533_button.clicked.connect(self.uninstall_openbor_7533)
+
         self.install_update_sonic_mania_button.clicked.connect(
             self.install_or_update_sonic_mania
         )
         self.upload_data_rsdk_button.clicked.connect(self.upload_sonic_mania_data_rsdk)
         self.uninstall_sonic_mania_button.clicked.connect(self.uninstall_sonic_mania)
+
         self.hide_console_button.clicked.connect(self.toggle_console)
 
     def _build_button_row(self, *buttons):
@@ -306,6 +346,50 @@ class ExtrasTab(QWidget):
             self._build_button_row(
                 self.install_update_pico8_button,
                 self.uninstall_pico8_button,
+            )
+        )
+
+        widget.setLayout(layout)
+        return widget
+
+    def _build_openbor_4086_actions(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        self.install_update_openbor_4086_button = QPushButton("Install")
+        self.install_update_openbor_4086_button.setMinimumWidth(170)
+
+        self.uninstall_openbor_4086_button = QPushButton("Uninstall")
+        self.uninstall_openbor_4086_button.setMinimumWidth(170)
+
+        layout.addLayout(
+            self._build_button_row(
+                self.install_update_openbor_4086_button,
+                self.uninstall_openbor_4086_button,
+            )
+        )
+
+        widget.setLayout(layout)
+        return widget
+
+    def _build_openbor_7533_actions(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        self.install_update_openbor_7533_button = QPushButton("Install")
+        self.install_update_openbor_7533_button.setMinimumWidth(170)
+
+        self.uninstall_openbor_7533_button = QPushButton("Uninstall")
+        self.uninstall_openbor_7533_button.setMinimumWidth(170)
+
+        layout.addLayout(
+            self._build_button_row(
+                self.install_update_openbor_7533_button,
+                self.uninstall_openbor_7533_button,
             )
         )
 
@@ -427,6 +511,10 @@ class ExtrasTab(QWidget):
             self.uninstall_3sx_button,
             self.install_update_pico8_button,
             self.uninstall_pico8_button,
+            self.install_update_openbor_4086_button,
+            self.uninstall_openbor_4086_button,
+            self.install_update_openbor_7533_button,
+            self.uninstall_openbor_7533_button,
             self.install_update_sonic_mania_button,
             self.upload_data_rsdk_button,
             self.uninstall_sonic_mania_button,
@@ -435,10 +523,14 @@ class ExtrasTab(QWidget):
 
         self.install_update_3sx_button.setText("Install")
         self.install_update_pico8_button.setText("Install")
+        self.install_update_openbor_4086_button.setText("Install")
+        self.install_update_openbor_7533_button.setText("Install")
         self.install_update_sonic_mania_button.setText("Install")
 
         self.extra_status_texts[self.EXTRA_3SX] = "Unknown"
         self.extra_status_texts[self.EXTRA_PICO8] = "Unknown"
+        self.extra_status_texts[self.EXTRA_OPENBOR_4086] = "Unknown"
+        self.extra_status_texts[self.EXTRA_OPENBOR_7533] = "Unknown"
         self.extra_status_texts[self.EXTRA_SONIC_MANIA] = "Unknown"
 
         self.update_extra_list_labels()
@@ -476,6 +568,48 @@ class ExtrasTab(QWidget):
             self.install_update_pico8_button.setText(status_pico8["install_label"])
             self.install_update_pico8_button.setEnabled(status_pico8["install_enabled"])
             self.uninstall_pico8_button.setEnabled(status_pico8["uninstall_enabled"])
+
+        try:
+            status_openbor_4086 = get_openbor_4086_status(self.connection)
+        except Exception as e:
+            self.extra_status_texts[self.EXTRA_OPENBOR_4086] = f"Unknown ({e})"
+            self.install_update_openbor_4086_button.setText("Install")
+            self.install_update_openbor_4086_button.setEnabled(False)
+            self.uninstall_openbor_4086_button.setEnabled(False)
+        else:
+            self.extra_status_texts[self.EXTRA_OPENBOR_4086] = status_openbor_4086[
+                "status_text"
+            ]
+            self.install_update_openbor_4086_button.setText(
+                status_openbor_4086["install_label"]
+            )
+            self.install_update_openbor_4086_button.setEnabled(
+                status_openbor_4086["install_enabled"]
+            )
+            self.uninstall_openbor_4086_button.setEnabled(
+                status_openbor_4086["uninstall_enabled"]
+            )
+
+        try:
+            status_openbor_7533 = get_openbor_7533_status(self.connection)
+        except Exception as e:
+            self.extra_status_texts[self.EXTRA_OPENBOR_7533] = f"Unknown ({e})"
+            self.install_update_openbor_7533_button.setText("Install")
+            self.install_update_openbor_7533_button.setEnabled(False)
+            self.uninstall_openbor_7533_button.setEnabled(False)
+        else:
+            self.extra_status_texts[self.EXTRA_OPENBOR_7533] = status_openbor_7533[
+                "status_text"
+            ]
+            self.install_update_openbor_7533_button.setText(
+                status_openbor_7533["install_label"]
+            )
+            self.install_update_openbor_7533_button.setEnabled(
+                status_openbor_7533["install_enabled"]
+            )
+            self.uninstall_openbor_7533_button.setEnabled(
+                status_openbor_7533["uninstall_enabled"]
+            )
 
         try:
             status_sonic_mania = get_sonic_mania_status(self.connection)
@@ -563,6 +697,12 @@ class ExtrasTab(QWidget):
 
         self.install_update_pico8_button.setEnabled(False)
         self.uninstall_pico8_button.setEnabled(False)
+
+        self.install_update_openbor_4086_button.setEnabled(False)
+        self.uninstall_openbor_4086_button.setEnabled(False)
+
+        self.install_update_openbor_7533_button.setEnabled(False)
+        self.uninstall_openbor_7533_button.setEnabled(False)
 
         self.install_update_sonic_mania_button.setEnabled(False)
         self.upload_data_rsdk_button.setEnabled(False)
@@ -679,6 +819,82 @@ class ExtrasTab(QWidget):
             return backend_uninstall_pico8(self.connection, log)
 
         self._run_worker(task, "MiSTer Pico-8 uninstalled.")
+
+    def install_or_update_openbor_4086(self):
+        if not self.connection.is_connected():
+            return
+
+        button_text = self.install_update_openbor_4086_button.text().strip()
+        success_message = "MiSTer OpenBOR 4086 installed."
+
+        if button_text == "Update":
+            success_message = "MiSTer OpenBOR 4086 updated."
+
+        def task(log):
+            return backend_install_or_update_openbor_4086(self.connection, log)
+
+        self._run_worker(task, success_message)
+
+    def uninstall_openbor_4086(self):
+        if not self.connection.is_connected():
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Uninstall MiSTer OpenBOR 4086",
+            (
+                "Remove MiSTer OpenBOR 4086 engine files, RBF files, documentation, "
+                "install script, and the user-startup.sh daemon entry?\n\n"
+                "Your Paks folder should be left in place."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return backend_uninstall_openbor_4086(self.connection, log)
+
+        self._run_worker(task, "MiSTer OpenBOR 4086 uninstalled.")
+
+    def install_or_update_openbor_7533(self):
+        if not self.connection.is_connected():
+            return
+
+        button_text = self.install_update_openbor_7533_button.text().strip()
+        success_message = "MiSTer OpenBOR 7533 installed."
+
+        if button_text == "Update":
+            success_message = "MiSTer OpenBOR 7533 updated."
+
+        def task(log):
+            return backend_install_or_update_openbor_7533(self.connection, log)
+
+        self._run_worker(task, success_message)
+
+    def uninstall_openbor_7533(self):
+        if not self.connection.is_connected():
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Uninstall MiSTer OpenBOR 7533",
+            (
+                "Remove MiSTer OpenBOR 7533 engine files, RBF files, documentation, "
+                "install script, and the user-startup.sh daemon entry?\n\n"
+                "Your Paks folder should be left in place."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return backend_uninstall_openbor_7533(self.connection, log)
+
+        self._run_worker(task, "MiSTer OpenBOR 7533 uninstalled.")
 
     def install_or_update_sonic_mania(self):
         if not self.connection.is_connected():

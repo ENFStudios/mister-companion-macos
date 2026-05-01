@@ -151,6 +151,7 @@ class MiSTerSettingsTab(QWidget):
         self.easy_analogue_combo.addItems([
             "RGB (Consumer TV)",
             "RGB (PVM/BVM)",
+            "RGB (PVM/BVM SoG Alt)",
             "Component (YPbPr)",
             "S-Video",
             "VGA Monitor"
@@ -267,6 +268,20 @@ class MiSTerSettingsTab(QWidget):
         self.notice_label.setText(text)
         self.notice_label.setVisible(bool(text))
 
+    def normalize_ini_text(self, text, ensure_trailing_newline=True):
+        text = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+
+        lines = [line.rstrip() for line in text.split("\n")]
+        text = "\n".join(lines)
+
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = text.rstrip("\n")
+
+        if ensure_trailing_newline:
+            text += "\n"
+
+        return text
+
     def apply_connected_state(self):
         self.easy_mode_radio.setEnabled(True)
         self.advanced_mode_radio.setEnabled(True)
@@ -341,10 +356,13 @@ class MiSTerSettingsTab(QWidget):
             self.advanced_group.hide()
         else:
             if connected:
-                current_text = self.advanced_text.toPlainText().strip()
+                current_text = self.normalize_ini_text(
+                    self.advanced_text.toPlainText(),
+                    ensure_trailing_newline=True
+                )
 
-                if current_text:
-                    new_ini_text = current_text + "\n"
+                if current_text.strip():
+                    new_ini_text = current_text
                 else:
                     new_ini_text = "[MiSTer]\n"
 
@@ -354,7 +372,14 @@ class MiSTerSettingsTab(QWidget):
                     new_ini_text,
                     self.easy_font_combo.currentText().strip()
                 )
+                new_ini_text = self.normalize_ini_text(
+                    new_ini_text,
+                    ensure_trailing_newline=True
+                )
+
+                self.advanced_text.blockSignals(True)
                 self.advanced_text.setPlainText(new_ini_text)
+                self.advanced_text.blockSignals(False)
 
             self.advanced_text.setMinimumHeight(420)
             self.easy_group.hide()
@@ -610,7 +635,11 @@ class MiSTerSettingsTab(QWidget):
         if not ini_text:
             return
 
-        self.advanced_text.setPlainText(ini_text)
+        self.advanced_text.blockSignals(True)
+        self.advanced_text.setPlainText(
+            self.normalize_ini_text(ini_text, ensure_trailing_newline=True)
+        )
+        self.advanced_text.blockSignals(False)
 
     def build_easy_mode_settings(self):
         return build_easy_mode_settings(self.collect_easy_mode_values())
@@ -705,12 +734,21 @@ class MiSTerSettingsTab(QWidget):
                     new_ini_text,
                     self.easy_font_combo.currentText().strip()
                 )
+                new_ini_text = self.normalize_ini_text(
+                    new_ini_text,
+                    ensure_trailing_newline=True
+                )
             else:
-                advanced_text = self.advanced_text.toPlainText().strip()
-                if not advanced_text:
+                advanced_text = self.normalize_ini_text(
+                    self.advanced_text.toPlainText(),
+                    ensure_trailing_newline=True
+                )
+
+                if not advanced_text.strip():
                     QMessageBox.critical(self, "MiSTer.ini Error", "Advanced editor is empty.")
                     return
-                new_ini_text = advanced_text + "\n"
+
+                new_ini_text = advanced_text
 
             sftp = self.connection.client.open_sftp()
             try:

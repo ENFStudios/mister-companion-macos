@@ -24,7 +24,7 @@ Latest releases: [github.com/ENFStudios/mister-companion-macos/releases](https:/
 
 ## System Requirements
 
-- **Apple Silicon Mac** (M1 - M5)
+- **Apple Silicon Mac** (M1 and newer)
 - **macOS 11 Big Sur** or later.
 - A MiSTer FPGA reachable over the local network via SSH.
 

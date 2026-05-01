@@ -13,6 +13,7 @@ This port provides a native `.app` bundle and DMG installer for Apple Silicon Ma
 | Platform | File | Link |
 |---|---|---|
 | macOS (Apple Silicon, arm64) | `MiSTer Companion-3.6.0.dmg` | **[Download v3.6.0](https://github.com/ENFStudios/mister-companion-macos/releases/download/v3.6.0/MiSTer.Companion-3.6.0.dmg)** |
+| macOS (Apple Silicon, arm64) | `MiSTer Companion-3.5.1.dmg` | [Download v3.5.1](https://github.com/ENFStudios/mister-companion-macos/releases/download/v3.5.1/MiSTer.Companion-3.5.1.dmg) |
 
 Latest releases: [github.com/ENFStudios/mister-companion-macos/releases](https://github.com/ENFStudios/mister-companion-macos/releases)
 

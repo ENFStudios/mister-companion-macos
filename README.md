@@ -209,6 +209,8 @@ Useful after installing **RetroAchievement Cores** from the Extras tab — that 
 
 Original author: **[Anime0t4ku](https://github.com/Anime0t4ku)** — see [UPSTREAM_README.md](UPSTREAM_README.md) for the upstream project description.
 
+macOS port maintained by **[ENF Studios](https://github.com/ENFStudios)**.
+
 This repository is a macOS-focused fork/port and is **not** affiliated with or endorsed by the upstream project.
 
 ---

@@ -184,8 +184,6 @@ MiSTer Companion uses a tabbed interface to organize functionality.
 
 ### How to switch INI files on MiSTer
 
-The INI selector is **not** in the F12 OSD menu. It lives on the MiSTer main screen.
-
 1. Go to the MiSTer main screen
 2. Press **Left arrow** on keyboard or gamepad
 3. The Info/Config screen opens — at the bottom you'll see the INI selector

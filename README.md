@@ -12,11 +12,9 @@ This port provides a native `.app` bundle and DMG installer for Apple Silicon Ma
 
 | Platform | File | Link |
 |---|---|---|
-| macOS (Apple Silicon, arm64) | `MiSTer Companion-3.7.0.dmg` | **[Download v3.7.0](https://github.com/ENFStudios/mister-companion-macos/releases/download/v3.7.0/MiSTer.Companion-3.7.0.dmg)** |
-| macOS (Apple Silicon, arm64) | `MiSTer Companion-3.6.0.dmg` | [Download v3.6.0](https://github.com/ENFStudios/mister-companion-macos/releases/download/v3.6.0/MiSTer.Companion-3.6.0.dmg) |
-| macOS (Apple Silicon, arm64) | `MiSTer Companion-3.5.1.dmg` | [Download v3.5.1](https://github.com/ENFStudios/mister-companion-macos/releases/download/v3.5.1/MiSTer.Companion-3.5.1.dmg) |
+| macOS (Apple Silicon, arm64) | `MiSTer Companion-3.8.0.dmg` | **[Download v3.8.0](https://github.com/ENFStudios/mister-companion-macos/releases/download/v3.8.0/MiSTer.Companion-3.8.0.dmg)** |
 
-Latest releases: [github.com/ENFStudios/mister-companion-macos/releases](https://github.com/ENFStudios/mister-companion-macos/releases)
+Older versions remain on the [releases page](https://github.com/ENFStudios/mister-companion-macos/releases).
 
 ---
 
@@ -179,6 +177,26 @@ MiSTer Companion uses a tabbed interface to organize functionality.
 - Multiple wallpaper sources supported
 - Automatic update detection
 - Built-in SSH output log
+
+---
+
+## Tips
+
+### How to switch INI files on MiSTer
+
+The INI selector is **not** in the F12 OSD menu. It lives on the MiSTer main screen.
+
+1. Go to the MiSTer main screen
+2. Press **Left arrow** on keyboard or gamepad
+3. The Info/Config screen opens — at the bottom you'll see the INI selector
+4. Available INIs are listed by the name after the underscore:
+    - `MiSTer.ini` → shown as **"Main"**
+    - `MiSTer_RA.ini` → shown as **"RA"**
+    - `MiSTer_CRT.ini` → shown as **"CRT"**
+    - etc.
+5. Select the one you want → MiSTer reloads with that config
+
+Useful after installing **RetroAchievement Cores** from the Extras tab — that adds a `MiSTer_RA.ini` you switch to via the steps above.
 
 ---
 

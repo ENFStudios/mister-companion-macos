@@ -23,16 +23,19 @@ from core.extras_actions import (
     get_openbor_7533_status,
     get_pico8_status,
     get_sonic_mania_status,
+    get_zaparoo_launcher_status,
     install_or_update_3sx as backend_install_or_update_3sx,
     install_or_update_openbor_4086 as backend_install_or_update_openbor_4086,
     install_or_update_openbor_7533 as backend_install_or_update_openbor_7533,
     install_or_update_pico8 as backend_install_or_update_pico8,
     install_or_update_sonic_mania as backend_install_or_update_sonic_mania,
+    install_or_update_zaparoo_launcher as backend_install_or_update_zaparoo_launcher,
     uninstall_3sx as backend_uninstall_3sx,
     uninstall_openbor_4086 as backend_uninstall_openbor_4086,
     uninstall_openbor_7533 as backend_uninstall_openbor_7533,
     uninstall_pico8 as backend_uninstall_pico8,
     uninstall_sonic_mania as backend_uninstall_sonic_mania,
+    uninstall_zaparoo_launcher as backend_uninstall_zaparoo_launcher,
     upload_3sx_afs as backend_upload_3sx_afs,
     upload_sonic_mania_data_rsdk as backend_upload_sonic_mania_data_rsdk,
 )
@@ -81,6 +84,7 @@ class ExtrasTab(QWidget):
     EXTRA_OPENBOR_7533 = "mister_openbor_7533"
     EXTRA_SONIC_MANIA = "sonic_mania_mister"
     EXTRA_RA_CORES = "retroachievement_cores"
+    EXTRA_ZAPAROO_LAUNCHER = "zaparoo_launcher_ui_beta"
 
     TASK_CHECK_3SX = "check_updates_3sx"
     TASK_CHECK_PICO8 = "check_updates_pico8"
@@ -88,6 +92,7 @@ class ExtrasTab(QWidget):
     TASK_CHECK_OPENBOR_7533 = "check_updates_openbor_7533"
     TASK_CHECK_SONIC_MANIA = "check_updates_sonic_mania"
     TASK_CHECK_RA_CORES = "check_updates_ra_cores"
+    TASK_CHECK_ZAPAROO_LAUNCHER = "check_updates_zaparoo_launcher"
 
     def __init__(self, main_window):
         super().__init__()
@@ -99,6 +104,7 @@ class ExtrasTab(QWidget):
         self.current_task_kind = None
         self.current_check_result = None
         self.ra_cores_show_install_info_after_success = False
+        self.zaparoo_launcher_show_reboot_after_success = False
 
         self.extra_display_order = [
             self.EXTRA_3SX,
@@ -107,6 +113,7 @@ class ExtrasTab(QWidget):
             self.EXTRA_OPENBOR_7533,
             self.EXTRA_SONIC_MANIA,
             self.EXTRA_RA_CORES,
+            self.EXTRA_ZAPAROO_LAUNCHER,
         ]
 
         self.extra_titles = {
@@ -116,6 +123,7 @@ class ExtrasTab(QWidget):
             self.EXTRA_OPENBOR_7533: "MiSTer OpenBOR 7533",
             self.EXTRA_SONIC_MANIA: "Sonic Mania MiSTer",
             self.EXTRA_RA_CORES: "RetroAchievement Cores",
+            self.EXTRA_ZAPAROO_LAUNCHER: "Zaparoo Launcher/UI Beta",
         }
 
         self.extra_descriptions = {
@@ -142,6 +150,10 @@ class ExtrasTab(QWidget):
                 "Install, update, configure, and uninstall RetroAchievement-enabled "
                 "MiSTer support files and supported RA cores directly from MiSTer Companion."
             ),
+            self.EXTRA_ZAPAROO_LAUNCHER: (
+                "Install, update, and uninstall Zaparoo Launcher/UI Beta directly from "
+                "MiSTer Companion."
+            ),
         }
 
         self.extra_status_texts = {
@@ -151,6 +163,7 @@ class ExtrasTab(QWidget):
             self.EXTRA_OPENBOR_7533: "Unknown",
             self.EXTRA_SONIC_MANIA: "Unknown",
             self.EXTRA_RA_CORES: "Unknown",
+            self.EXTRA_ZAPAROO_LAUNCHER: "Unknown",
         }
 
         self.selected_extra_key = self.EXTRA_3SX
@@ -248,6 +261,7 @@ class ExtrasTab(QWidget):
         self.openbor_7533_actions_widget = self._build_openbor_7533_actions()
         self.sonic_mania_actions_widget = self._build_sonic_mania_actions()
         self.ra_cores_actions_widget = self._build_ra_cores_actions()
+        self.zaparoo_launcher_actions_widget = self._build_zaparoo_launcher_actions()
 
         self.extra_action_widgets = {
             self.EXTRA_3SX: self.threesx_actions_widget,
@@ -256,6 +270,7 @@ class ExtrasTab(QWidget):
             self.EXTRA_OPENBOR_7533: self.openbor_7533_actions_widget,
             self.EXTRA_SONIC_MANIA: self.sonic_mania_actions_widget,
             self.EXTRA_RA_CORES: self.ra_cores_actions_widget,
+            self.EXTRA_ZAPAROO_LAUNCHER: self.zaparoo_launcher_actions_widget,
         }
 
         for widget in self.extra_action_widgets.values():
@@ -332,6 +347,11 @@ class ExtrasTab(QWidget):
         self.check_updates_ra_cores_button.clicked.connect(self.check_ra_cores_updates)
         self.edit_ra_cores_config_button.clicked.connect(self.edit_ra_cores_config)
         self.uninstall_ra_cores_button.clicked.connect(self.uninstall_ra_cores)
+
+        self.install_update_zaparoo_launcher_button.clicked.connect(
+            self.install_or_update_zaparoo_launcher
+        )
+        self.uninstall_zaparoo_launcher_button.clicked.connect(self.uninstall_zaparoo_launcher)
 
         self.hide_console_button.clicked.connect(self.toggle_console)
 
@@ -536,6 +556,28 @@ class ExtrasTab(QWidget):
         widget.setLayout(layout)
         return widget
 
+    def _build_zaparoo_launcher_actions(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        self.install_update_zaparoo_launcher_button = QPushButton("Install")
+        self.install_update_zaparoo_launcher_button.setMinimumWidth(170)
+
+        self.uninstall_zaparoo_launcher_button = QPushButton("Uninstall")
+        self.uninstall_zaparoo_launcher_button.setMinimumWidth(170)
+
+        layout.addLayout(
+            self._build_button_row(
+                self.install_update_zaparoo_launcher_button,
+                self.uninstall_zaparoo_launcher_button,
+            )
+        )
+
+        widget.setLayout(layout)
+        return widget
+
     def _populate_extra_list(self):
         self.extra_list.clear()
         for extra_key in self.extra_display_order:
@@ -616,6 +658,7 @@ class ExtrasTab(QWidget):
 
     def apply_disconnected_state(self):
         self.ra_cores_show_install_info_after_success = False
+        self.zaparoo_launcher_show_reboot_after_success = False
 
         for button in [
             self.install_update_3sx_button,
@@ -639,6 +682,8 @@ class ExtrasTab(QWidget):
             self.check_updates_ra_cores_button,
             self.edit_ra_cores_config_button,
             self.uninstall_ra_cores_button,
+            self.install_update_zaparoo_launcher_button,
+            self.uninstall_zaparoo_launcher_button,
         ]:
             button.setEnabled(False)
 
@@ -648,6 +693,7 @@ class ExtrasTab(QWidget):
         self.install_update_openbor_7533_button.setText("Install")
         self.install_update_sonic_mania_button.setText("Install")
         self.install_update_ra_cores_button.setText("Install")
+        self.install_update_zaparoo_launcher_button.setText("Install")
 
         self.extra_status_texts[self.EXTRA_3SX] = "Unknown"
         self.extra_status_texts[self.EXTRA_PICO8] = "Unknown"
@@ -655,6 +701,7 @@ class ExtrasTab(QWidget):
         self.extra_status_texts[self.EXTRA_OPENBOR_7533] = "Unknown"
         self.extra_status_texts[self.EXTRA_SONIC_MANIA] = "Unknown"
         self.extra_status_texts[self.EXTRA_RA_CORES] = "Unknown"
+        self.extra_status_texts[self.EXTRA_ZAPAROO_LAUNCHER] = "Unknown"
 
         self.update_extra_list_labels()
         self.update_details_panel()
@@ -732,6 +779,16 @@ class ExtrasTab(QWidget):
             self.uninstall_ra_cores_button.setEnabled(False)
         else:
             self._apply_status_result_for_extra(self.EXTRA_RA_CORES, status_ra_cores)
+
+        try:
+            status_zaparoo_launcher = get_zaparoo_launcher_status(self.connection)
+        except Exception as e:
+            self.extra_status_texts[self.EXTRA_ZAPAROO_LAUNCHER] = f"Unknown ({e})"
+            self.install_update_zaparoo_launcher_button.setText("Install")
+            self.install_update_zaparoo_launcher_button.setEnabled(False)
+            self.uninstall_zaparoo_launcher_button.setEnabled(False)
+        else:
+            self._apply_status_result_for_extra(self.EXTRA_ZAPAROO_LAUNCHER, status_zaparoo_launcher)
 
         self.update_extra_list_labels()
         self.update_details_panel()
@@ -818,12 +875,22 @@ class ExtrasTab(QWidget):
         self.edit_ra_cores_config_button.setEnabled(False)
         self.uninstall_ra_cores_button.setEnabled(False)
 
+        self.install_update_zaparoo_launcher_button.setEnabled(False)
+        self.uninstall_zaparoo_launcher_button.setEnabled(False)
+
         self.current_worker.start()
 
     def on_worker_success(self, message):
         if message:
             self.append_console_line("")
             self.append_console_line(message)
+
+        if (
+            message == "Zaparoo Launcher/UI Beta installed."
+            and self.zaparoo_launcher_show_reboot_after_success
+        ):
+            self.zaparoo_launcher_show_reboot_after_success = False
+            self.show_zaparoo_launcher_install_info()
 
         if (
             message == "RetroAchievement Cores installed."
@@ -930,6 +997,7 @@ class ExtrasTab(QWidget):
             self.TASK_CHECK_OPENBOR_7533,
             self.TASK_CHECK_SONIC_MANIA,
             self.TASK_CHECK_RA_CORES,
+            self.TASK_CHECK_ZAPAROO_LAUNCHER,
         }
 
     def _extra_key_for_check_task(self, task_kind):
@@ -940,6 +1008,7 @@ class ExtrasTab(QWidget):
             self.TASK_CHECK_OPENBOR_7533: self.EXTRA_OPENBOR_7533,
             self.TASK_CHECK_SONIC_MANIA: self.EXTRA_SONIC_MANIA,
             self.TASK_CHECK_RA_CORES: self.EXTRA_RA_CORES,
+            self.TASK_CHECK_ZAPAROO_LAUNCHER: self.EXTRA_ZAPAROO_LAUNCHER,
         }.get(task_kind)
 
     def _apply_status_result_for_extra(self, extra_key, result):
@@ -991,6 +1060,11 @@ class ExtrasTab(QWidget):
                 result.get("edit_config_enabled", False)
             )
             self.uninstall_ra_cores_button.setEnabled(result["uninstall_enabled"])
+
+        elif extra_key == self.EXTRA_ZAPAROO_LAUNCHER:
+            self.install_update_zaparoo_launcher_button.setText(result["install_label"])
+            self.install_update_zaparoo_launcher_button.setEnabled(result["install_enabled"])
+            self.uninstall_zaparoo_launcher_button.setEnabled(result["uninstall_enabled"])
 
     def check_3sx_updates(self):
         if not self.connection.is_connected():
@@ -1347,3 +1421,51 @@ class ExtrasTab(QWidget):
             return backend_uninstall_ra_cores(self.connection, log)
 
         self._run_worker(task, "RetroAchievement Cores uninstalled.")
+
+    def show_zaparoo_launcher_install_info(self):
+        QMessageBox.information(
+            self,
+            "Zaparoo Launcher/UI Beta Installed",
+            (
+                "Zaparoo Launcher/UI Beta has been installed.\n\n"
+                "A reboot is required for the changes to take effect.\n\n"
+                "After rebooting, the Zaparoo Launcher will appear in the MiSTer menu."
+            ),
+        )
+
+    def install_or_update_zaparoo_launcher(self):
+        if not self.connection.is_connected():
+            return
+
+        button_text = self.install_update_zaparoo_launcher_button.text().strip()
+        is_update = button_text == "Update"
+        success_message = "Zaparoo Launcher/UI Beta installed."
+
+        if is_update:
+            success_message = "Zaparoo Launcher/UI Beta updated."
+
+        self.zaparoo_launcher_show_reboot_after_success = not is_update
+
+        def task(log):
+            return backend_install_or_update_zaparoo_launcher(self.connection, log)
+
+        self._run_worker(task, success_message)
+
+    def uninstall_zaparoo_launcher(self):
+        if not self.connection.is_connected():
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Uninstall Zaparoo Launcher/UI Beta",
+            "Remove Zaparoo Launcher/UI Beta files and the MiSTer.ini entries?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return backend_uninstall_zaparoo_launcher(self.connection, log)
+
+        self._run_worker(task, "Zaparoo Launcher/UI Beta uninstalled.")

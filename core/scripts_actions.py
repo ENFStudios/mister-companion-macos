@@ -1468,3 +1468,25 @@ def open_scripts_folder_on_host(ip, username="root", password="1"):
         return
 
     raise RuntimeError(f"Unsupported platform: {sys.platform}")
+
+
+from core.scripts_syncthing import (  # noqa: E402
+    get_syncthing_status,
+    install_syncthing,
+    is_syncthing_running,
+    is_syncthing_start_on_boot_enabled,
+    start_syncthing,
+    stop_syncthing,
+    toggle_syncthing_start_on_boot,
+    enable_syncthing_start_on_boot,
+    disable_syncthing_start_on_boot,
+    uninstall_syncthing,
+)
+
+from core.scripts_ra_viewer import (  # noqa: E402
+    get_ra_viewer_status,
+    install_ra_viewer,
+    load_ra_viewer_config,
+    save_ra_viewer_config,
+    uninstall_ra_viewer,
+)

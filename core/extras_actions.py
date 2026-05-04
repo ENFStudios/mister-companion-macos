@@ -2035,3 +2035,10 @@ def uninstall_sonic_mania(connection, log):
         log("No Sonic Mania blocks found in MiSTer.ini\n")
 
     return {"uninstalled": True}
+
+
+from core.extras_zaparoo_launcher import (  # noqa: E402
+    get_zaparoo_launcher_status,
+    install_or_update_zaparoo_launcher,
+    uninstall_zaparoo_launcher,
+)

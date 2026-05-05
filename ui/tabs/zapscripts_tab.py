@@ -18,27 +18,31 @@ from PyQt6.QtWidgets import (
 
 from core.config import load_config, save_config
 from core.zapscripts import (
-    fetch_all_media,
+    fetch_media_from_db_cache,
+    read_media_db_entries,
     list_scripts,
     launch_media,
     send_input_command,
-    get_media_database_status,
     get_zapscripts_state,
 )
-from core.zaplauncher_db import get_db_path, load_db, save_db, get_last_scan_time
+from core.zaplauncher_db import get_media_db_path, get_last_scan_time
 from ui.dialogs.zapscripts_controls_dialog import ZapScriptsControlsDialog
 from ui.dialogs.zapscripts_scan_notice_dialog import ZapScriptsScanNoticeDialog
 
 
+REMOTE_MEDIA_DB_PATH = "/media/fat/zaparoo/media.db"
+
+
 class ScanWorker(QThread):
     progress = pyqtSignal(int)
-    scan_done = pyqtSignal(list)
+    finished = pyqtSignal(list)
     error = pyqtSignal(str)
     aborted = pyqtSignal()
 
-    def __init__(self, connection):
+    def __init__(self, connection, media_db_path):
         super().__init__()
         self.connection = connection
+        self.media_db_path = media_db_path
         self._abort_requested = False
 
     def request_abort(self):
@@ -55,13 +59,18 @@ class ScanWorker(QThread):
                 elif args:
                     self.progress.emit(int(args[0]))
 
-            data = fetch_all_media(self.connection, progress_cb)
+            data = fetch_media_from_db_cache(
+                self.connection,
+                self.media_db_path,
+                progress_callback=progress_cb,
+            )
 
             if self._abort_requested:
                 self.aborted.emit()
                 return
 
-            self.scan_done.emit(data)
+            self.finished.emit(data)
+
         except Exception as e:
             if str(e) == "__SCAN_ABORTED__":
                 self.aborted.emit()
@@ -79,7 +88,6 @@ class ZapScriptsTab(QWidget):
         self.filtered_entries = []
         self.worker = None
         self.expected_total = 0
-        self._zaparoo_ready = False
 
         self._build_ui()
         self._load_db()
@@ -98,7 +106,7 @@ class ZapScriptsTab(QWidget):
 
         self.scan_btn = QPushButton("Scan")
         self.scan_btn.clicked.connect(self._handle_scan_button)
-        self.scan_btn.setMinimumWidth(80)
+        self.scan_btn.setFixedWidth(80)
 
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
@@ -201,12 +209,29 @@ class ZapScriptsTab(QWidget):
     def _get_db_path(self):
         host = getattr(self.connection, "host", "") or ""
         profile_name = self._get_profile_name_for_current_host()
-        return get_db_path(profile_name, host) if host else None
+        return get_media_db_path(profile_name, host) if host else None
+
+    def _remote_media_db_exists(self) -> bool:
+        if not self.connection.is_connected():
+            return False
+
+        output = self.connection.run_command(
+            f'test -f "{REMOTE_MEDIA_DB_PATH}" && echo EXISTS'
+        )
+
+        return "EXISTS" in (output or "")
+
+    def _get_remote_media_count_estimate(self) -> int:
+        """
+        Optional fast estimate from local cache after download is not possible here,
+        so this returns 0 and keeps the progress bar indeterminate during download.
+
+        The worker will still report actual parsed rows once SQLite reading starts.
+        """
+        return 0
 
     def _update_idle_status(self):
         if not self.connection.is_connected():
-            self._zaparoo_ready = False
-            self._apply_zaparoo_button_state()
             self.progress.setRange(0, 100)
             self.progress.setValue(0)
             self.status.setText("No library found")
@@ -219,26 +244,20 @@ class ZapScriptsTab(QWidget):
 
         if state:
             if not state.get("zaparoo_installed", False):
-                self._zaparoo_ready = False
-                self._apply_zaparoo_button_state()
                 self.progress.setRange(0, 100)
                 self.progress.setValue(0)
                 self.status.setText("Zaparoo is not installed")
                 return
 
             if not state.get("zaparoo_service_enabled", False):
-                self._zaparoo_ready = False
-                self._apply_zaparoo_button_state()
                 self.progress.setRange(0, 100)
                 self.progress.setValue(0)
                 self.status.setText("Zaparoo service is not enabled")
                 return
 
-        self._zaparoo_ready = True
-        self._apply_zaparoo_button_state()
-
         ts = get_last_scan_time(self.db_path) if self.db_path else None
         self.progress.setRange(0, 100)
+
         if ts:
             dt = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
             self.progress.setValue(100)
@@ -246,13 +265,6 @@ class ZapScriptsTab(QWidget):
         else:
             self.progress.setValue(0)
             self.status.setText("No scan has been run yet")
-
-    def _apply_zaparoo_button_state(self):
-        connected = self.connection.is_connected()
-        idle = self.worker is None
-        ready = self._zaparoo_ready
-        self.launch_btn.setEnabled(connected and idle and ready)
-        self.controls_btn.setEnabled(connected and idle and ready)
 
     def _load_db(self):
         self.db_path = self._get_db_path()
@@ -265,8 +277,24 @@ class ZapScriptsTab(QWidget):
             self._update_idle_status()
             return
 
-        data = load_db(self.db_path)
-        self.entries = data.get("entries", [])
+        if not self.db_path.exists():
+            self.entries = []
+            self.filtered_entries = []
+            self._rebuild_systems([])
+            self._refresh_list()
+            self._update_idle_status()
+            return
+
+        try:
+            self.entries = read_media_db_entries(self.db_path)
+        except Exception as e:
+            self.entries = []
+            self.filtered_entries = []
+            self._rebuild_systems([])
+            self._refresh_list()
+            self.status.setText(f"Could not read media.db: {e}")
+            return
+
         self.filtered_entries = []
 
         systems = sorted(
@@ -277,6 +305,7 @@ class ZapScriptsTab(QWidget):
             },
             key=str.casefold,
         )
+
         self._rebuild_systems(systems)
         self._filter()
         self._update_idle_status()
@@ -324,67 +353,40 @@ class ZapScriptsTab(QWidget):
             return
 
         try:
-            media_status = get_media_database_status(self.connection)
+            if not self._remote_media_db_exists():
+                QMessageBox.warning(
+                    self,
+                    "No media database",
+                    f"Zaparoo media database was not found on this MiSTer:\n\n{REMOTE_MEDIA_DB_PATH}",
+                )
+                self.status.setText("No media database found")
+                self.progress.setRange(0, 100)
+                self.progress.setValue(0)
+                return
         except Exception as e:
-            QMessageBox.critical(self, "Media status failed", str(e))
-            return
-
-        if not media_status.get("exists"):
-            QMessageBox.warning(
+            QMessageBox.critical(
                 self,
-                "No media database",
-                "Zaparoo media database was not found on this MiSTer.",
+                "Media database check failed",
+                f"Could not check for Zaparoo media database:\n\n{e}",
             )
-            self.status.setText("No media database found")
-            self.progress.setRange(0, 100)
-            self.progress.setValue(0)
             return
 
-        if media_status.get("indexing"):
-            step_label = media_status.get("current_step_display") or "Indexing"
-            QMessageBox.information(
-                self,
-                "Media indexing in progress",
-                f"Zaparoo is still indexing media.\n\nCurrent step: {step_label}",
-            )
-            self.status.setText(f"Indexing: {step_label}")
-            self.progress.setRange(0, 100)
-            self.progress.setValue(0)
-            return
-
-        if media_status.get("optimizing"):
-            step_label = media_status.get("current_step_display") or "Optimizing"
-            QMessageBox.information(
-                self,
-                "Media optimization in progress",
-                f"Zaparoo is still optimizing the media database.\n\nCurrent step: {step_label}",
-            )
-            self.status.setText(f"Optimizing: {step_label}")
-            self.progress.setRange(0, 100)
-            self.progress.setValue(0)
-            return
-
-        self.expected_total = int(media_status.get("total_media") or 0)
+        self.expected_total = self._get_remote_media_count_estimate()
 
         self.scan_btn.setText("Abort")
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(False)
         self.controls_btn.setEnabled(False)
 
-        if self.expected_total > 0:
-            self.progress.setRange(0, self.expected_total)
-            self.progress.setValue(0)
-        else:
-            self.progress.setRange(0, 0)
+        # Unknown total during SFTP download, use busy/indeterminate state.
+        self.progress.setRange(0, 0)
+        self.status.setText("Downloading media.db...")
 
-        self.status.setText("Items scanned: 0")
-
-        self.worker = ScanWorker(self.connection)
+        self.worker = ScanWorker(self.connection, self.db_path)
         self.worker.progress.connect(self._on_progress)
-        self.worker.scan_done.connect(self._on_finished)
+        self.worker.finished.connect(self._on_finished)
         self.worker.error.connect(self._on_error)
         self.worker.aborted.connect(self._on_aborted)
-        self.worker.finished.connect(self._on_worker_cleanup)
         self.worker.start()
 
     def abort_scan(self):
@@ -396,48 +398,34 @@ class ZapScriptsTab(QWidget):
         self.worker.request_abort()
 
     def _on_progress(self, scanned_count):
-        if self.expected_total > 0:
-            self.progress.setRange(0, self.expected_total)
-            self.progress.setValue(min(scanned_count, self.expected_total))
+        # Once parsing starts, switch from indeterminate to scanned count.
+        if self.progress.minimum() == 0 and self.progress.maximum() == 0:
+            self.progress.setRange(0, 0)
+
         self.status.setText(f"Items scanned: {scanned_count}")
 
     def _on_finished(self, data):
         self.progress.setRange(0, 100)
         self.progress.setValue(100)
 
-        entries = []
-        systems = set()
+        self.entries = data or []
+        systems = sorted(
+            {
+                item.get("system", "Unknown")
+                for item in self.entries
+                if item.get("type") == "game"
+            },
+            key=str.casefold,
+        )
 
-        for item in data:
-            filename = item.get("filename") or item.get("name") or ""
-            system_name = item.get("system_name") or "Unknown"
-            system_id = item.get("system_id") or system_name
-
-            entries.append(
-                {
-                    "name": filename,
-                    "filename": filename,
-                    "system": system_name,
-                    "system_id": system_id,
-                    "type": "game",
-                    "path": item.get("path"),
-                    "zapScript": item.get("zapScript"),
-                }
-            )
-
-            if system_name:
-                systems.add(system_name)
-
-        save_db(self.db_path, {"entries": entries})
-        self.entries = entries
-
-        self._rebuild_systems(sorted(systems, key=str.casefold))
+        self._rebuild_systems(systems)
         self._filter()
 
         self.scan_btn.setText("Scan")
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(self.connection.is_connected())
         self.controls_btn.setEnabled(self.connection.is_connected())
+        self.worker = None
         self.expected_total = 0
         self._update_idle_status()
 
@@ -449,6 +437,7 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(self.connection.is_connected())
         self.controls_btn.setEnabled(self.connection.is_connected())
+        self.worker = None
         self.expected_total = 0
 
     def _on_error(self, message):
@@ -459,13 +448,9 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(self.connection.is_connected())
         self.controls_btn.setEnabled(self.connection.is_connected())
+        self.worker = None
         self.expected_total = 0
         QMessageBox.critical(self, "Scan failed", message)
-
-    def _on_worker_cleanup(self):
-        if self.worker is not None:
-            self.worker.deleteLater()
-            self.worker = None
 
     def _get_combined_entries(self):
         scripts = list_scripts(self.connection) if self.connection.is_connected() else []
@@ -570,7 +555,8 @@ class ZapScriptsTab(QWidget):
         connected = self.connection.is_connected()
 
         self.scan_btn.setEnabled(True if self.worker is not None else connected)
-        self._apply_zaparoo_button_state()
+        self.launch_btn.setEnabled(connected and self.worker is None)
+        self.controls_btn.setEnabled(connected and self.worker is None)
 
         self.search.setEnabled(True)
         self.systems.setEnabled(True)
@@ -578,12 +564,15 @@ class ZapScriptsTab(QWidget):
 
         if connected and self.worker is None:
             self._load_db()
+
         elif not connected:
             self.db_path = self._get_db_path()
 
-            if self.db_path:
-                data = load_db(self.db_path)
-                self.entries = data.get("entries", [])
+            if self.db_path and self.db_path.exists():
+                try:
+                    self.entries = read_media_db_entries(self.db_path)
+                except Exception:
+                    self.entries = []
             else:
                 self.entries = []
 
@@ -595,6 +584,7 @@ class ZapScriptsTab(QWidget):
                 },
                 key=str.casefold,
             )
+
             self._rebuild_systems(systems)
             self._filter()
 

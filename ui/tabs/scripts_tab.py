@@ -1,4 +1,5 @@
 import traceback
+import webbrowser
 
 from PyQt6.QtCore import QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -67,6 +68,7 @@ class ScriptTaskWorker(QThread):
     log_line = pyqtSignal(str)
     success = pyqtSignal(str)
     error = pyqtSignal(str)
+    finished_task = pyqtSignal()
     task_result = pyqtSignal(object)
 
     def __init__(self, task_fn, success_message=""):
@@ -89,6 +91,8 @@ class ScriptTaskWorker(QThread):
         except Exception as e:
             detail = traceback.format_exc()
             self.error.emit(f"{str(e)}\n\n{detail}")
+        finally:
+            self.finished_task.emit()
 
 
 class ScriptsTab(QWidget):
@@ -126,6 +130,7 @@ class ScriptsTab(QWidget):
             self.SCRIPT_SYNCTHING,
             self.SCRIPT_RA_VIEWER,
         ]
+
         self.script_titles = {
             self.SCRIPT_UPDATE_ALL: "update_all",
             self.SCRIPT_ZAPAROO: "zaparoo",
@@ -138,6 +143,7 @@ class ScriptsTab(QWidget):
             self.SCRIPT_SYNCTHING: "syncthing",
             self.SCRIPT_RA_VIEWER: "ra_viewer",
         }
+
         self.script_descriptions = {
             self.SCRIPT_UPDATE_ALL: "Install, configure, and run update_all directly from MiSTer Companion.",
             self.SCRIPT_ZAPAROO: "Install Zaparoo and enable its boot service.",
@@ -147,9 +153,10 @@ class ScriptsTab(QWidget):
             self.SCRIPT_DAV_BROWSER: "Browse a WebDAV server, download ROMs directly to your MiSTer, and optionally launch them after download.",
             self.SCRIPT_FTP_SAVE_SYNC: "Sync MiSTer saves to a remote FTP or SFTP server, with optional savestate syncing and automatic boot-time service startup.",
             self.SCRIPT_STATIC_WALLPAPER: "Install or remove static_wallpaper support. Setting or removing the active static wallpaper is now handled from the Wallpapers tab.",
-            self.SCRIPT_SYNCTHING: "Install Syncthing to continuously sync files between your MiSTer and other devices. Web UI available on port 8384.",
-            self.SCRIPT_RA_VIEWER: "Install RA Viewer to display RetroAchievements progress overlays. Requires a RetroAchievements account and Web API key.",
+            self.SCRIPT_SYNCTHING: "Install Syncthing on your MiSTer, start it immediately, optionally enable start on boot, open the web config, or uninstall it completely.",
+            self.SCRIPT_RA_VIEWER: "Install RA Viewer on your MiSTer and configure your RetroAchievements username and Web API key.",
         }
+
         self.script_status_texts = {
             self.SCRIPT_UPDATE_ALL: "Unknown",
             self.SCRIPT_ZAPAROO: "Unknown",
@@ -162,6 +169,7 @@ class ScriptsTab(QWidget):
             self.SCRIPT_SYNCTHING: "Unknown",
             self.SCRIPT_RA_VIEWER: "Unknown",
         }
+
         self.selected_script_key = self.SCRIPT_UPDATE_ALL
 
         self.build_ui()
@@ -288,7 +296,7 @@ class ScriptsTab(QWidget):
         bottom_actions_row.addStretch()
 
         self.open_scripts_folder_button = QPushButton("Open Scripts Folder")
-        self.open_scripts_folder_button.setMinimumWidth(180)
+        self.open_scripts_folder_button.setFixedWidth(180)
         bottom_actions_row.addWidget(self.open_scripts_folder_button)
 
         bottom_actions_row.addStretch()
@@ -303,7 +311,7 @@ class ScriptsTab(QWidget):
         header_row.addStretch()
 
         self.hide_console_button = QPushButton("Hide")
-        self.hide_console_button.setMinimumWidth(70)
+        self.hide_console_button.setFixedWidth(70)
         header_row.addWidget(self.hide_console_button)
         console_layout.addLayout(header_row)
 
@@ -360,6 +368,7 @@ class ScriptsTab(QWidget):
 
         self.install_syncthing_button.clicked.connect(self.install_syncthing)
         self.toggle_syncthing_boot_button.clicked.connect(self.toggle_syncthing_start_on_boot)
+        self.open_syncthing_web_config_button.clicked.connect(self.open_syncthing_web_config)
         self.uninstall_syncthing_button.clicked.connect(self.uninstall_syncthing)
 
         self.install_ra_viewer_button.clicked.connect(self.install_ra_viewer)
@@ -385,16 +394,16 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_update_button = QPushButton("Install")
-        self.install_update_button.setMinimumWidth(170)
+        self.install_update_button.setFixedWidth(170)
 
         self.uninstall_update_button = QPushButton("Uninstall")
-        self.uninstall_update_button.setMinimumWidth(170)
+        self.uninstall_update_button.setFixedWidth(170)
 
         self.configure_update_button = QPushButton("Configure")
-        self.configure_update_button.setMinimumWidth(190)
+        self.configure_update_button.setFixedWidth(190)
 
         self.run_update_button = QPushButton("Run")
-        self.run_update_button.setMinimumWidth(170)
+        self.run_update_button.setFixedWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -419,13 +428,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_zaparoo_button = QPushButton("Install")
-        self.install_zaparoo_button.setMinimumWidth(170)
+        self.install_zaparoo_button.setFixedWidth(170)
 
         self.enable_zaparoo_service_button = QPushButton("Enable Service")
-        self.enable_zaparoo_service_button.setMinimumWidth(190)
+        self.enable_zaparoo_service_button.setFixedWidth(190)
 
         self.uninstall_zaparoo_button = QPushButton("Uninstall")
-        self.uninstall_zaparoo_button.setMinimumWidth(170)
+        self.uninstall_zaparoo_button.setFixedWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -445,10 +454,10 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_migrate_button = QPushButton("Install")
-        self.install_migrate_button.setMinimumWidth(180)
+        self.install_migrate_button.setFixedWidth(180)
 
         self.uninstall_migrate_button = QPushButton("Uninstall")
-        self.uninstall_migrate_button.setMinimumWidth(180)
+        self.uninstall_migrate_button.setFixedWidth(180)
 
         layout.addLayout(
             self._build_button_row(
@@ -467,22 +476,22 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_cifs_button = QPushButton("Install")
-        self.install_cifs_button.setMinimumWidth(120)
+        self.install_cifs_button.setFixedWidth(120)
 
         self.configure_cifs_button = QPushButton("Configure")
-        self.configure_cifs_button.setMinimumWidth(120)
+        self.configure_cifs_button.setFixedWidth(120)
 
         self.mount_cifs_button = QPushButton("Mount")
-        self.mount_cifs_button.setMinimumWidth(120)
+        self.mount_cifs_button.setFixedWidth(120)
 
         self.unmount_cifs_button = QPushButton("Unmount")
-        self.unmount_cifs_button.setMinimumWidth(120)
+        self.unmount_cifs_button.setFixedWidth(120)
 
         self.remove_cifs_config_button = QPushButton("Remove Config")
-        self.remove_cifs_config_button.setMinimumWidth(130)
+        self.remove_cifs_config_button.setFixedWidth(130)
 
         self.uninstall_cifs_button = QPushButton("Uninstall")
-        self.uninstall_cifs_button.setMinimumWidth(120)
+        self.uninstall_cifs_button.setFixedWidth(120)
 
         layout.addLayout(
             self._build_button_row(
@@ -509,10 +518,10 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_auto_time_button = QPushButton("Install")
-        self.install_auto_time_button.setMinimumWidth(140)
+        self.install_auto_time_button.setFixedWidth(140)
 
         self.uninstall_auto_time_button = QPushButton("Uninstall")
-        self.uninstall_auto_time_button.setMinimumWidth(140)
+        self.uninstall_auto_time_button.setFixedWidth(140)
 
         layout.addLayout(
             self._build_button_row(
@@ -531,16 +540,16 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_dav_browser_button = QPushButton("Install")
-        self.install_dav_browser_button.setMinimumWidth(140)
+        self.install_dav_browser_button.setFixedWidth(140)
 
         self.configure_dav_browser_button = QPushButton("Configure")
-        self.configure_dav_browser_button.setMinimumWidth(140)
+        self.configure_dav_browser_button.setFixedWidth(140)
 
         self.remove_dav_browser_config_button = QPushButton("Remove Config")
-        self.remove_dav_browser_config_button.setMinimumWidth(140)
+        self.remove_dav_browser_config_button.setFixedWidth(140)
 
         self.uninstall_dav_browser_button = QPushButton("Uninstall")
-        self.uninstall_dav_browser_button.setMinimumWidth(140)
+        self.uninstall_dav_browser_button.setFixedWidth(140)
 
         layout.addLayout(
             self._build_button_row(
@@ -565,22 +574,22 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_ftp_save_sync_button = QPushButton("Install")
-        self.install_ftp_save_sync_button.setMinimumWidth(140)
+        self.install_ftp_save_sync_button.setFixedWidth(140)
 
         self.configure_ftp_save_sync_button = QPushButton("Configure")
-        self.configure_ftp_save_sync_button.setMinimumWidth(140)
+        self.configure_ftp_save_sync_button.setFixedWidth(140)
 
         self.enable_ftp_save_sync_service_button = QPushButton("Enable Service")
-        self.enable_ftp_save_sync_service_button.setMinimumWidth(140)
+        self.enable_ftp_save_sync_service_button.setFixedWidth(140)
 
         self.disable_ftp_save_sync_service_button = QPushButton("Disable Service")
-        self.disable_ftp_save_sync_service_button.setMinimumWidth(140)
+        self.disable_ftp_save_sync_service_button.setFixedWidth(140)
 
         self.remove_ftp_save_sync_config_button = QPushButton("Remove Config")
-        self.remove_ftp_save_sync_config_button.setMinimumWidth(140)
+        self.remove_ftp_save_sync_config_button.setFixedWidth(140)
 
         self.uninstall_ftp_save_sync_button = QPushButton("Uninstall")
-        self.uninstall_ftp_save_sync_button.setMinimumWidth(140)
+        self.uninstall_ftp_save_sync_button.setFixedWidth(140)
 
         layout.addLayout(
             self._build_button_row(
@@ -607,10 +616,10 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_static_wallpaper_button = QPushButton("Install")
-        self.install_static_wallpaper_button.setMinimumWidth(150)
+        self.install_static_wallpaper_button.setFixedWidth(150)
 
         self.uninstall_static_wallpaper_button = QPushButton("Uninstall")
-        self.uninstall_static_wallpaper_button.setMinimumWidth(150)
+        self.uninstall_static_wallpaper_button.setFixedWidth(150)
 
         layout.addLayout(
             self._build_button_row(
@@ -629,13 +638,16 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_syncthing_button = QPushButton("Install")
-        self.install_syncthing_button.setMinimumWidth(150)
+        self.install_syncthing_button.setFixedWidth(170)
 
         self.toggle_syncthing_boot_button = QPushButton("Enable Start on Boot")
-        self.toggle_syncthing_boot_button.setMinimumWidth(180)
+        self.toggle_syncthing_boot_button.setFixedWidth(190)
+
+        self.open_syncthing_web_config_button = QPushButton("Open Web Config")
+        self.open_syncthing_web_config_button.setFixedWidth(190)
 
         self.uninstall_syncthing_button = QPushButton("Uninstall")
-        self.uninstall_syncthing_button.setMinimumWidth(150)
+        self.uninstall_syncthing_button.setFixedWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -643,7 +655,12 @@ class ScriptsTab(QWidget):
                 self.toggle_syncthing_boot_button,
             )
         )
-        layout.addLayout(self._build_button_row(self.uninstall_syncthing_button))
+        layout.addLayout(
+            self._build_button_row(
+                self.open_syncthing_web_config_button,
+                self.uninstall_syncthing_button,
+            )
+        )
 
         widget.setLayout(layout)
         return widget
@@ -655,13 +672,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_ra_viewer_button = QPushButton("Install")
-        self.install_ra_viewer_button.setMinimumWidth(150)
+        self.install_ra_viewer_button.setFixedWidth(170)
 
         self.edit_ra_viewer_config_button = QPushButton("Edit Config")
-        self.edit_ra_viewer_config_button.setMinimumWidth(150)
+        self.edit_ra_viewer_config_button.setFixedWidth(170)
 
         self.uninstall_ra_viewer_button = QPushButton("Uninstall")
-        self.uninstall_ra_viewer_button.setMinimumWidth(150)
+        self.uninstall_ra_viewer_button.setFixedWidth(170)
 
         layout.addLayout(
             self._build_button_row(
@@ -669,7 +686,11 @@ class ScriptsTab(QWidget):
                 self.edit_ra_viewer_config_button,
             )
         )
-        layout.addLayout(self._build_button_row(self.uninstall_ra_viewer_button))
+        layout.addLayout(
+            self._build_button_row(
+                self.uninstall_ra_viewer_button,
+            )
+        )
 
         widget.setLayout(layout)
         return widget
@@ -726,6 +747,8 @@ class ScriptsTab(QWidget):
                 self.script_status_label.setStyleSheet("color: #cc8400;")
             else:
                 self.script_status_label.setStyleSheet("color: #00aa00;")
+        elif "running" in lowered:
+            self.script_status_label.setStyleSheet("color: #00aa00;")
         elif "active" in lowered:
             self.script_status_label.setStyleSheet("color: #00aa00;")
         elif "configured" in lowered:
@@ -760,9 +783,6 @@ class ScriptsTab(QWidget):
 
         self.open_scripts_folder_button.setEnabled(True)
 
-        # Leave detailed per-script button states untouched here.
-        # They are populated by refresh_status() when the tab is opened.
-
     def apply_disconnected_state(self):
         for button in [
             self.install_update_button,
@@ -796,6 +816,7 @@ class ScriptsTab(QWidget):
             self.uninstall_static_wallpaper_button,
             self.install_syncthing_button,
             self.toggle_syncthing_boot_button,
+            self.open_syncthing_web_config_button,
             self.uninstall_syncthing_button,
             self.install_ra_viewer_button,
             self.edit_ra_viewer_config_button,
@@ -803,6 +824,8 @@ class ScriptsTab(QWidget):
             self.open_scripts_folder_button,
         ]:
             button.setEnabled(False)
+
+        self.toggle_syncthing_boot_button.setText("Enable Start on Boot")
 
         self.script_status_texts[self.SCRIPT_UPDATE_ALL] = "Unknown"
         self.script_status_texts[self.SCRIPT_ZAPAROO] = "Unknown"
@@ -987,33 +1010,25 @@ class ScriptsTab(QWidget):
 
         try:
             syncthing_status = get_syncthing_status(self.connection)
-        except Exception:
-            syncthing_status = None
-
-        if syncthing_status is None:
-            self.script_status_texts[self.SCRIPT_SYNCTHING] = "Unknown"
+        except Exception as e:
+            self.script_status_texts[self.SCRIPT_SYNCTHING] = f"Unknown ({e})"
             self.install_syncthing_button.setEnabled(False)
+            self.toggle_syncthing_boot_button.setText("Enable Start on Boot")
             self.toggle_syncthing_boot_button.setEnabled(False)
-            self.uninstall_syncthing_button.setEnabled(False)
-        elif not syncthing_status["installed"]:
-            self.script_status_texts[self.SCRIPT_SYNCTHING] = "✗ Not installed"
-            self.install_syncthing_button.setEnabled(True)
-            self.toggle_syncthing_boot_button.setEnabled(False)
+            self.open_syncthing_web_config_button.setEnabled(False)
             self.uninstall_syncthing_button.setEnabled(False)
         else:
             self.script_status_texts[self.SCRIPT_SYNCTHING] = syncthing_status["status_text"]
-            self.install_syncthing_button.setEnabled(False)
+            self.install_syncthing_button.setEnabled(syncthing_status["install_enabled"])
             self.toggle_syncthing_boot_button.setText(syncthing_status["boot_label"])
             self.toggle_syncthing_boot_button.setEnabled(syncthing_status["boot_enabled"])
+            self.open_syncthing_web_config_button.setEnabled(syncthing_status["running"])
             self.uninstall_syncthing_button.setEnabled(syncthing_status["uninstall_enabled"])
 
         try:
             ra_viewer_status = get_ra_viewer_status(self.connection)
-        except Exception:
-            ra_viewer_status = None
-
-        if ra_viewer_status is None:
-            self.script_status_texts[self.SCRIPT_RA_VIEWER] = "Unknown"
+        except Exception as e:
+            self.script_status_texts[self.SCRIPT_RA_VIEWER] = f"Unknown ({e})"
             self.install_ra_viewer_button.setEnabled(False)
             self.edit_ra_viewer_config_button.setEnabled(False)
             self.uninstall_ra_viewer_button.setEnabled(False)
@@ -1062,7 +1077,7 @@ class ScriptsTab(QWidget):
         self.current_worker.success.connect(self.on_worker_success)
         self.current_worker.error.connect(self.on_worker_error)
         self.current_worker.task_result.connect(self.on_worker_result)
-        self.current_worker.finished.connect(self.on_worker_finished)
+        self.current_worker.finished_task.connect(self.on_worker_finished)
         self.current_worker.start()
 
     def on_worker_success(self, message):
@@ -1084,9 +1099,7 @@ class ScriptsTab(QWidget):
                 self.main_window.start_reboot_reconnect_polling()
 
     def on_worker_finished(self):
-        if self.current_worker is not None:
-            self.current_worker.deleteLater()
-            self.current_worker = None
+        self.current_worker = None
 
         if self.waiting_for_reboot_reconnect:
             return
@@ -1564,6 +1577,159 @@ class ScriptsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
+    def install_syncthing(self):
+        if not self.connection.is_connected():
+            return
+
+        proceed = QMessageBox.question(
+            self,
+            "Install Syncthing",
+            (
+                "This will install Syncthing on your MiSTer and start it immediately.\n\n"
+                "The Syncthing web UI will be available on port 8384 after installation.\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if proceed != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return install_syncthing(self.connection, log)
+
+        self.start_worker(task, "Syncthing installed and started successfully.")
+
+    def toggle_syncthing_start_on_boot(self):
+        if not self.connection.is_connected():
+            return
+
+        current_label = self.toggle_syncthing_boot_button.text().strip()
+        enabling = current_label.startswith("Enable")
+
+        if enabling:
+            title = "Enable Syncthing Start on Boot"
+            message = "This will start Syncthing automatically when MiSTer boots.\n\nContinue?"
+            done_title = "Syncthing Enabled"
+            done_message = "Syncthing start on boot has been enabled."
+        else:
+            title = "Disable Syncthing Start on Boot"
+            message = "This will remove the Syncthing startup entry from user-startup.sh.\n\nContinue?"
+            done_title = "Syncthing Disabled"
+            done_message = "Syncthing start on boot has been disabled."
+
+        confirm = QMessageBox.question(
+            self,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            toggle_syncthing_start_on_boot(self.connection)
+            QMessageBox.information(self, done_title, done_message)
+            self.refresh_status()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def open_syncthing_web_config(self):
+        if not self.connection.is_connected():
+            return
+
+        host = self.connection.host
+        if not host:
+            QMessageBox.warning(
+                self,
+                "Open Syncthing Web Config",
+                "No MiSTer IP address is available.",
+            )
+            return
+
+        webbrowser.open(f"http://{host}:8384")
+
+    def uninstall_syncthing(self):
+        if not self.connection.is_connected():
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Uninstall Syncthing",
+            (
+                "This will stop Syncthing, remove its start-on-boot entry, "
+                "remove syncthing.sh, and delete the full Syncthing config folder.\n\n"
+                "This also removes the Syncthing device identity/config from this MiSTer.\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return uninstall_syncthing(self.connection, log)
+
+        self.start_worker(task, "Syncthing uninstalled successfully.")
+
+    def install_ra_viewer(self):
+        if not self.connection.is_connected():
+            return
+
+        proceed = QMessageBox.question(
+            self,
+            "Install RA Viewer",
+            (
+                "This will install RA Viewer on your MiSTer and prepare its helper files.\n\n"
+                "After installation, open Edit Config and enter your RetroAchievements "
+                "username and Web API key.\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if proceed != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return install_ra_viewer(self.connection, log)
+
+        self.start_worker(task, "RA Viewer installed successfully.")
+
+    def edit_ra_viewer_config(self):
+        if not self.connection.is_connected():
+            return
+
+        dialog = RAViewerConfigDialog(self.connection, self)
+        if dialog.exec():
+            self.refresh_status()
+
+    def uninstall_ra_viewer(self):
+        if not self.connection.is_connected():
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Uninstall RA Viewer",
+            (
+                "This will remove ra_viewer.sh and delete the full RA Viewer config folder.\n\n"
+                "This also removes the saved RetroAchievements username and API key "
+                "from this MiSTer.\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        def task(log):
+            return uninstall_ra_viewer(self.connection, log)
+
+        self.start_worker(task, "RA Viewer uninstalled successfully.")
+
     def open_scripts_folder(self):
         host = self.connection.host
         if not host:
@@ -1582,83 +1748,3 @@ class ScriptsTab(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
-
-    def install_syncthing(self):
-        if not self.connection.is_connected():
-            return
-
-        def task(log):
-            install_syncthing(self.connection, log)
-
-        self.start_worker(task, "Syncthing installed successfully.")
-
-    def toggle_syncthing_start_on_boot(self):
-        if not self.connection.is_connected():
-            return
-
-        try:
-            result = toggle_syncthing_start_on_boot(self.connection)
-            enabled = result.get("start_on_boot_enabled", False)
-            if enabled:
-                QMessageBox.information(
-                    self, "Syncthing", "Start on boot enabled.\n\nPlease reboot your MiSTer."
-                )
-            else:
-                QMessageBox.information(self, "Syncthing", "Start on boot disabled.")
-            self.refresh_status()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
-
-    def uninstall_syncthing(self):
-        if not self.connection.is_connected():
-            return
-
-        confirm = QMessageBox.question(
-            self,
-            "Uninstall Syncthing",
-            "This will stop Syncthing, remove its binary, config, and startup entry.\n\nContinue?",
-        )
-        if confirm != QMessageBox.StandardButton.Yes:
-            return
-
-        def task(log):
-            uninstall_syncthing(self.connection, log)
-
-        self.start_worker(task, "Syncthing uninstalled.")
-
-    def install_ra_viewer(self):
-        if not self.connection.is_connected():
-            return
-
-        def task(log):
-            install_ra_viewer(self.connection, log)
-
-        self.start_worker(
-            task,
-            "RA Viewer installed.\n\nOpen Edit Config and enter your RetroAchievements username and Web API key.",
-        )
-
-    def edit_ra_viewer_config(self):
-        if not self.connection.is_connected():
-            return
-
-        dialog = RAViewerConfigDialog(self.connection, self)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            self.refresh_status()
-
-    def uninstall_ra_viewer(self):
-        if not self.connection.is_connected():
-            return
-
-        confirm = QMessageBox.question(
-            self,
-            "Uninstall RA Viewer",
-            "This will remove RA Viewer and its config folder.\n\nContinue?",
-        )
-        if confirm != QMessageBox.StandardButton.Yes:
-            return
-
-        def task(log):
-            uninstall_ra_viewer(self.connection, log)
-
-        self.start_worker(task, "RA Viewer uninstalled.")

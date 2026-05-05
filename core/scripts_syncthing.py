@@ -38,30 +38,75 @@ BIN="{SYNCTHING_BINARY_PATH}"
 HOME_DIR="{SYNCTHING_HOME_DIR}"
 LOG_FILE="{SYNCTHING_LOG_FILE}"
 PID_FILE="{SYNCTHING_PID_FILE}"
+GUI_ADDRESS="0.0.0.0:8384"
 
 mkdir -p "$BASE" "$HOME_DIR"
 
-if [ ! -x "$BIN" ]; then
-    echo "Syncthing binary missing or not executable: $BIN" >> "$LOG_FILE"
-    exit 1
-fi
-
-if [ -f "$PID_FILE" ]; then
-    old_pid="$(cat "$PID_FILE" 2>/dev/null)"
-    if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
-        exit 0
+start_syncthing() {{
+    if [ ! -x "$BIN" ]; then
+        echo "Syncthing binary missing or not executable: $BIN" >> "$LOG_FILE"
+        exit 1
     fi
-    rm -f "$PID_FILE"
-fi
 
-STGUIADDRESS="0.0.0.0:8384" "$BIN" \\
-    -home="$HOME_DIR" \\
-    -no-browser \\
-    -no-restart \\
-    -logfile="$LOG_FILE" \\
-    >/dev/null 2>&1 &
+    if [ -f "$PID_FILE" ]; then
+        old_pid="$(cat "$PID_FILE" 2>/dev/null)"
+        if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
+            exit 0
+        fi
+        rm -f "$PID_FILE"
+    fi
 
-echo "$!" > "$PID_FILE"
+    nohup "$BIN" serve \\
+        --home "$HOME_DIR" \\
+        --no-browser \\
+        --gui-address "$GUI_ADDRESS" \\
+        > "$LOG_FILE" 2>&1 &
+
+    echo "$!" > "$PID_FILE"
+
+    sleep 2
+
+    new_pid="$(cat "$PID_FILE" 2>/dev/null)"
+    if [ -z "$new_pid" ] || ! kill -0 "$new_pid" 2>/dev/null; then
+        rm -f "$PID_FILE"
+        echo "Syncthing failed to stay running after start." >> "$LOG_FILE"
+        exit 1
+    fi
+
+    exit 0
+}}
+
+stop_syncthing() {{
+    if [ -f "$PID_FILE" ]; then
+        pid="$(cat "$PID_FILE" 2>/dev/null)"
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            sleep 1
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+        rm -f "$PID_FILE"
+    fi
+
+    pkill -f "$BIN" 2>/dev/null || true
+    exit 0
+}}
+
+case "$1" in
+    start)
+        start_syncthing
+        ;;
+    stop)
+        stop_syncthing
+        ;;
+    restart)
+        stop_syncthing
+        start_syncthing
+        ;;
+    *)
+        echo "Usage: $0 {{start|stop|restart}}"
+        exit 1
+        ;;
+esac
 """
 
 
@@ -88,6 +133,11 @@ def _remote_command_success(connection, command):
     return "OK" in (result or "")
 
 
+def _read_remote_tail(connection, path, lines=40):
+    output = connection.run_command(f"tail -n {int(lines)} {path} 2>/dev/null || true")
+    return output.strip() if output else ""
+
+
 def _download_bytes(url, timeout=60):
     response = requests.get(
         url,
@@ -100,20 +150,40 @@ def _download_bytes(url, timeout=60):
 
 def _download_syncthing_binary():
     archive_data = _download_bytes(SYNCTHING_DOWNLOAD_URL, timeout=120)
+    expected_name = f"syncthing-linux-arm-{SYNCTHING_VERSION}/syncthing"
 
     with tarfile.open(fileobj=io.BytesIO(archive_data), mode="r:gz") as tf:
-        for member in tf.getmembers():
+        members = tf.getmembers()
+
+        for member in members:
             if member.isdir():
                 continue
 
-            name = member.name.replace("\\", "/")
-            if name.endswith("/syncthing") or name == "syncthing":
+            name = member.name.replace("\\", "/").lstrip("./")
+
+            if name == expected_name:
                 extracted = tf.extractfile(member)
-                if extracted is None:
-                    break
+                if extracted is not None:
+                    return extracted.read()
+
+        for member in members:
+            if member.isdir():
+                continue
+
+            name = member.name.replace("\\", "/").lstrip("./")
+            basename = name.rsplit("/", 1)[-1]
+
+            if basename != "syncthing":
+                continue
+
+            if not (member.mode & 0o111):
+                continue
+
+            extracted = tf.extractfile(member)
+            if extracted is not None:
                 return extracted.read()
 
-    raise RuntimeError("Could not find syncthing binary inside the downloaded archive.")
+    raise RuntimeError("Could not find the Syncthing executable inside the downloaded archive.")
 
 
 def is_syncthing_start_on_boot_enabled(connection):
@@ -251,7 +321,9 @@ def install_syncthing(connection, log):
     connection.run_command(f"chmod +x {SYNCTHING_BINARY_PATH}")
 
     if not _remote_command_success(connection, f"{SYNCTHING_BINARY_PATH} version"):
-        raise RuntimeError("Syncthing binary upload succeeded, but it is not executable on MiSTer.")
+        raise RuntimeError(
+            "Syncthing binary upload succeeded, but it is not executable on MiSTer."
+        )
 
     log(f"Writing service script: {SYNCTHING_SERVICE_PATH}\n")
     _write_remote_text(connection, SYNCTHING_SERVICE_PATH, SYNCTHING_SERVICE_SCRIPT)
@@ -262,6 +334,16 @@ def install_syncthing(connection, log):
 
     log("Starting Syncthing...\n")
     start_syncthing(connection)
+
+    if not is_syncthing_running(connection):
+        log_tail = _read_remote_tail(connection, SYNCTHING_LOG_FILE)
+        if log_tail:
+            raise RuntimeError(
+                "Syncthing was installed, but it failed to start.\n\n"
+                f"Last log output:\n{log_tail}"
+            )
+
+        raise RuntimeError("Syncthing was installed, but it failed to start.")
 
     log("Syncthing installed and started successfully.\n")
     log("Web UI should be available on port 8384.\n")
@@ -276,12 +358,14 @@ def start_syncthing(connection):
     if not connection.is_connected():
         raise RuntimeError("Not connected to MiSTer.")
 
-    connection.run_command(f"{SYNCTHING_SERVICE_PATH} start >/dev/null 2>&1 &")
+    connection.run_command(f"{SYNCTHING_SERVICE_PATH} start >/dev/null 2>&1")
 
 
 def stop_syncthing(connection):
     if not connection.is_connected():
         return
+
+    connection.run_command(f"{SYNCTHING_SERVICE_PATH} stop >/dev/null 2>&1 || true")
 
     connection.run_command(
         f"""

@@ -148,6 +148,25 @@ def is_root_linux() -> bool:
         return False
 
 
+def _clean_subprocess_env() -> dict[str, str]:
+    env = os.environ.copy()
+
+    if platform.system() in {"Linux", "Darwin"}:
+        original_ld_library_path = env.get("LD_LIBRARY_PATH_ORIG")
+
+        if original_ld_library_path is not None:
+            if original_ld_library_path:
+                env["LD_LIBRARY_PATH"] = original_ld_library_path
+            else:
+                env.pop("LD_LIBRARY_PATH", None)
+        else:
+            env.pop("LD_LIBRARY_PATH", None)
+
+        env.pop("LD_PRELOAD", None)
+
+    return env
+
+
 def _get_windows_autoplay_value() -> int | None:
     if platform.system() != "Windows" or winreg is None:
         return None
@@ -692,6 +711,7 @@ def _run_subprocess(
         text=True,
         cwd=str(cwd) if cwd else None,
         startupinfo=startupinfo,
+        env=_clean_subprocess_env(),
     )
 
 
@@ -845,7 +865,9 @@ def list_available_drives(
 
     if result.returncode != 0:
         stderr = (result.stderr or "").strip()
-        raise RuntimeError(stderr or "Failed to get available drives.")
+        stdout = (result.stdout or "").strip()
+        combined = "\n".join(part for part in [stderr, stdout] if part).strip()
+        raise RuntimeError(combined or "Failed to get available drives.")
 
     stdout = (result.stdout or "").strip()
     if not stdout:
@@ -933,6 +955,8 @@ def flash_image(
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
+    clean_env = _clean_subprocess_env()
+
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE if platform.system() == "Darwin" else None,
@@ -941,6 +965,7 @@ def flash_image(
         text=True,
         cwd=str(balena_exe.parent),
         startupinfo=startupinfo,
+        env=clean_env,
         bufsize=1,
     )
 
@@ -979,6 +1004,8 @@ def flash_image(
             "access is denied",
             "permission denied",
             "error:",
+            "symbol lookup error",
+            "undefined symbol",
         ]
 
         if return_code != 0:
@@ -986,6 +1013,13 @@ def flash_image(
 
         for marker in error_markers:
             if marker in combined_output:
+                if marker in {"symbol lookup error", "undefined symbol"}:
+                    raise RuntimeError(
+                        "Flash failed because an external Linux system command could not start correctly.\n\n"
+                        "This is usually caused by a bundled PyInstaller library conflicting with a system library.\n"
+                        "MiSTer Companion tried to use a cleaned subprocess environment, but balena CLI still failed.\n\n"
+                        f"Exit code: {return_code}"
+                    )
                 if platform.system() == "Windows":
                     raise RuntimeError(
                         "Flash failed. balena CLI reported a permission or drive access error.\n\n"

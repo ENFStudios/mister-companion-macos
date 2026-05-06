@@ -31,6 +31,7 @@ class WallpaperTaskWorker(QThread):
     log_line = pyqtSignal(str)
     success = pyqtSignal(str)
     error = pyqtSignal(str)
+    finished_task = pyqtSignal()
 
     def __init__(self, task_fn, success_message=""):
         super().__init__()
@@ -50,6 +51,8 @@ class WallpaperTaskWorker(QThread):
         except Exception as e:
             detail = traceback.format_exc()
             self.error.emit(f"{str(e)}\n\n{detail}")
+        finally:
+            self.finished_task.emit()
 
 
 class WallpapersTab(QWidget):
@@ -80,10 +83,10 @@ class WallpapersTab(QWidget):
         static_buttons.setSpacing(10)
 
         self.set_static_wallpaper_button = QPushButton("Set Static Wallpaper")
-        self.set_static_wallpaper_button.setMinimumWidth(190)
+        self.set_static_wallpaper_button.setFixedWidth(190)
 
         self.remove_static_wallpaper_button = QPushButton("Remove Static Wallpaper")
-        self.remove_static_wallpaper_button.setMinimumWidth(190)
+        self.remove_static_wallpaper_button.setFixedWidth(190)
 
         static_buttons.addStretch()
         static_buttons.addWidget(self.set_static_wallpaper_button)
@@ -110,13 +113,13 @@ class WallpapersTab(QWidget):
         ranny_buttons.setSpacing(10)
 
         self.install_169_button = QPushButton("Install 16:9 Wallpapers")
-        self.install_169_button.setMinimumWidth(190)
+        self.install_169_button.setFixedWidth(190)
 
         self.install_43_button = QPushButton("Install 4:3 Wallpapers")
-        self.install_43_button.setMinimumWidth(190)
+        self.install_43_button.setFixedWidth(190)
 
         self.remove_ranny_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_ranny_button.setMinimumWidth(220)
+        self.remove_ranny_button.setFixedWidth(220)
 
         ranny_buttons.addStretch()
         ranny_buttons.addWidget(self.install_169_button)
@@ -138,10 +141,10 @@ class WallpapersTab(QWidget):
         pcn_buttons.setSpacing(10)
 
         self.install_pcn_button = QPushButton("Install Wallpapers")
-        self.install_pcn_button.setMinimumWidth(190)
+        self.install_pcn_button.setFixedWidth(190)
 
         self.remove_pcn_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_pcn_button.setMinimumWidth(220)
+        self.remove_pcn_button.setFixedWidth(220)
 
         pcn_buttons.addStretch()
         pcn_buttons.addWidget(self.install_pcn_button)
@@ -162,10 +165,10 @@ class WallpapersTab(QWidget):
         pcn_premium_buttons.setSpacing(10)
 
         self.install_pcn_premium_button = QPushButton("Install Wallpapers")
-        self.install_pcn_premium_button.setMinimumWidth(190)
+        self.install_pcn_premium_button.setFixedWidth(190)
 
         self.remove_pcn_premium_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_pcn_premium_button.setMinimumWidth(220)
+        self.remove_pcn_premium_button.setFixedWidth(220)
 
         pcn_premium_buttons.addStretch()
         pcn_premium_buttons.addWidget(self.install_pcn_premium_button)
@@ -186,10 +189,10 @@ class WallpapersTab(QWidget):
         ot4ku_buttons.setSpacing(10)
 
         self.install_ot4ku_button = QPushButton("Install Wallpapers")
-        self.install_ot4ku_button.setMinimumWidth(190)
+        self.install_ot4ku_button.setFixedWidth(190)
 
         self.remove_ot4ku_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_ot4ku_button.setMinimumWidth(220)
+        self.remove_ot4ku_button.setFixedWidth(220)
 
         ot4ku_buttons.addStretch()
         ot4ku_buttons.addWidget(self.install_ot4ku_button)
@@ -208,7 +211,7 @@ class WallpapersTab(QWidget):
         folder_row.addStretch()
 
         self.open_wallpaper_folder_button = QPushButton("Open Wallpaper Folder")
-        self.open_wallpaper_folder_button.setMinimumWidth(180)
+        self.open_wallpaper_folder_button.setFixedWidth(180)
 
         folder_row.addWidget(self.open_wallpaper_folder_button)
         folder_row.addStretch()
@@ -224,7 +227,7 @@ class WallpapersTab(QWidget):
         header_row.addStretch()
 
         self.hide_console_button = QPushButton("Hide")
-        self.hide_console_button.setMinimumWidth(70)
+        self.hide_console_button.setFixedWidth(70)
         header_row.addWidget(self.hide_console_button)
 
         console_layout.addLayout(header_row)
@@ -423,7 +426,7 @@ class WallpapersTab(QWidget):
         self.current_worker.log_line.connect(self.append_console)
         self.current_worker.success.connect(self.on_task_success)
         self.current_worker.error.connect(self.on_task_error)
-        self.current_worker.finished.connect(self.on_task_finished)
+        self.current_worker.finished_task.connect(self.on_task_finished)
         self.current_worker.start()
 
     def on_task_success(self, message: str):
@@ -434,9 +437,7 @@ class WallpapersTab(QWidget):
         QMessageBox.critical(self, "Wallpaper Error", detail)
 
     def on_task_finished(self):
-        if self.current_worker is not None:
-            self.current_worker.deleteLater()
-            self.current_worker = None
+        self.current_worker = None
         self.refresh_status()
 
     def show_console(self):

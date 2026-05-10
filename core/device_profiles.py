@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from core.app_paths import user_data_dir
 from core.config import save_config
 

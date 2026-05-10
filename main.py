@@ -1,19 +1,21 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 
-from core.app_paths import migrate_legacy_data_dirs
 from core.config import load_config
 from core.theme import apply_theme
+from ui.custom_dialog import install_custom_dialogs
+from ui.custom_message_dialog import install_custom_message_boxes
 from ui.main_window import MainWindow
 
 
 def main():
-    migrate_legacy_data_dirs()
-
     app = QApplication(sys.argv)
 
     config = load_config()
     apply_theme(app, config.get("theme_mode", "auto"))
+
+    install_custom_dialogs(app)
+    install_custom_message_boxes()
 
     window = MainWindow(app)
     window.show()

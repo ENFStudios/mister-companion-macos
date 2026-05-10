@@ -218,21 +218,12 @@ class FlashTab(QWidget):
         image_status_row.addWidget(self.image_status_title)
         image_status_row.addWidget(self.image_status_label, 1)
 
-        image_buttons_row = QHBoxLayout()
-        image_buttons_row.setSpacing(8)
-
         self.download_image_button = QPushButton("Download Image")
         self.remove_image_button = QPushButton("Remove Image")
 
-        self.download_image_button.setMinimumWidth(150)
-        self.remove_image_button.setMinimumWidth(130)
-
-        image_buttons_row.addWidget(self.download_image_button)
-        image_buttons_row.addWidget(self.remove_image_button)
-        image_buttons_row.addStretch()
-
         image_block.addLayout(image_status_row)
-        image_block.addLayout(image_buttons_row)
+        image_block.addWidget(self.download_image_button)
+        image_block.addWidget(self.remove_image_button)
 
         balena_block = QVBoxLayout()
         balena_block.setSpacing(6)
@@ -246,21 +237,12 @@ class FlashTab(QWidget):
         balena_status_row.addWidget(self.balena_status_title)
         balena_status_row.addWidget(self.balena_status_label, 1)
 
-        balena_buttons_row = QHBoxLayout()
-        balena_buttons_row.setSpacing(8)
-
         self.download_balena_button = QPushButton("Download balena CLI")
         self.remove_balena_button = QPushButton("Remove balena CLI")
 
-        self.download_balena_button.setMinimumWidth(150)
-        self.remove_balena_button.setMinimumWidth(130)
-
-        balena_buttons_row.addWidget(self.download_balena_button)
-        balena_buttons_row.addWidget(self.remove_balena_button)
-        balena_buttons_row.addStretch()
-
         balena_block.addLayout(balena_status_row)
-        balena_block.addLayout(balena_buttons_row)
+        balena_block.addWidget(self.download_balena_button)
+        balena_block.addWidget(self.remove_balena_button)
 
         requirements_layout.addLayout(image_block)
         requirements_layout.addLayout(balena_block)

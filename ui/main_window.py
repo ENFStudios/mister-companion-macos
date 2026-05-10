@@ -2,8 +2,8 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from PyQt6.QtCore import QEvent, QPoint, QRect, QSize, QThread, QTimer, Qt, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap, QRegion
+from PyQt6.QtCore import QSize, QThread, QTimer, Qt, pyqtSignal
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -82,8 +82,6 @@ class CustomTitleBar(QWidget):
     def __init__(self, main_window):
         super().__init__(main_window)
         self.main_window = main_window
-        self.dragging = False
-        self.drag_position = QPoint()
         self.logo_pixmap = QPixmap()
         self.logo_mode = ""
 
@@ -91,7 +89,7 @@ class CustomTitleBar(QWidget):
         self.setObjectName("CustomTitleBar")
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 0, 6, 0)
+        layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(8)
 
         self.logo_label = QLabel()
@@ -111,57 +109,11 @@ class CustomTitleBar(QWidget):
         self.version_label.setStyleSheet("color: gray; font-weight: bold;")
         layout.addWidget(self.version_label)
 
-        self.minimize_button = QPushButton("−")
-        self.maximize_button = QPushButton("□")
-        self.close_button = QPushButton("×")
-
-        for button in (
-            self.minimize_button,
-            self.maximize_button,
-            self.close_button,
-        ):
-            button.setFixedSize(36, 28)
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            button.setObjectName("WindowControlButton")
-
-        self.close_button.setObjectName("WindowCloseButton")
-
-        layout.addWidget(self.minimize_button)
-        layout.addWidget(self.maximize_button)
-        layout.addWidget(self.close_button)
-
-        self.minimize_button.clicked.connect(self.main_window.showMinimized)
-        self.maximize_button.clicked.connect(self.main_window.toggle_maximize_restore)
-        self.close_button.clicked.connect(self.main_window.close)
-
         self.setStyleSheet(
             """
             QWidget#CustomTitleBar {
                 background-color: palette(window);
                 border-bottom: 1px solid palette(mid);
-            }
-
-            QPushButton#WindowControlButton {
-                border: none;
-                border-radius: 5px;
-                font-size: 15px;
-                font-weight: bold;
-            }
-
-            QPushButton#WindowControlButton:hover {
-                background-color: palette(midlight);
-            }
-
-            QPushButton#WindowCloseButton {
-                border: none;
-                border-radius: 5px;
-                font-size: 15px;
-                font-weight: bold;
-            }
-
-            QPushButton#WindowCloseButton:hover {
-                background-color: #d32f2f;
-                color: white;
             }
             """
         )
@@ -202,97 +154,8 @@ class CustomTitleBar(QWidget):
         super().resizeEvent(event)
         self.update_logo_pixmap()
 
-    def start_native_window_drag(self) -> bool:
-        if sys.platform.startswith("win"):
-            try:
-                import ctypes
-
-                hwnd = int(self.main_window.winId())
-
-                WM_NCLBUTTONDOWN = 0x00A1
-                HTCAPTION = 2
-
-                ctypes.windll.user32.ReleaseCapture()
-                ctypes.windll.user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
-                return True
-            except Exception:
-                return False
-
-        window_handle = self.main_window.windowHandle()
-
-        if window_handle is not None:
-            try:
-                return bool(window_handle.startSystemMove())
-            except Exception:
-                return False
-
-        return False
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            clicked_widget = self.childAt(event.position().toPoint())
-
-            if clicked_widget in {
-                self.minimize_button,
-                self.maximize_button,
-                self.close_button,
-            }:
-                super().mousePressEvent(event)
-                return
-
-            self.dragging = False
-            self.drag_position = QPoint()
-
-            if self.start_native_window_drag():
-                event.accept()
-                return
-
-            self.dragging = True
-            self.drag_position = (
-                event.globalPosition().toPoint()
-                - self.main_window.frameGeometry().topLeft()
-            )
-            event.accept()
-            return
-
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self.dragging and event.buttons() & Qt.MouseButton.LeftButton:
-            self.main_window.move(event.globalPosition().toPoint() - self.drag_position)
-            event.accept()
-            return
-
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        self.dragging = False
-        self.drag_position = QPoint()
-        super().mouseReleaseEvent(event)
-
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            clicked_widget = self.childAt(event.position().toPoint())
-
-            if clicked_widget in {
-                self.minimize_button,
-                self.maximize_button,
-                self.close_button,
-            }:
-                super().mouseDoubleClickEvent(event)
-                return
-
-            self.main_window.toggle_maximize_restore()
-            event.accept()
-            return
-
-        super().mouseDoubleClickEvent(event)
-
 
 class MainWindow(QMainWindow):
-    RESIZE_MARGIN = 7
-    WINDOW_CORNER_RADIUS = 10
-
     def __init__(self, app):
         super().__init__()
 
@@ -321,25 +184,12 @@ class MainWindow(QMainWindow):
 
         self._closing = False
         self._tab_refresh_generation = 0
-        self._resizing = False
-        self._resize_direction = ""
-        self._resize_start_pos = QPoint()
-        self._resize_start_geometry = QRect()
 
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.Window
-            | Qt.WindowType.WindowSystemMenuHint
-            | Qt.WindowType.WindowMinimizeButtonHint
-            | Qt.WindowType.WindowMaximizeButtonHint
-        )
-        self.setMouseTracking(True)
         self.setMinimumSize(1100, 830)
 
         self.setWindowTitle(APP_NAME)
         self.apply_default_window_size()
         self.restore_window_geometry()
-        QTimer.singleShot(0, self.enable_windows_snap_styles)
 
         if ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(ICON_PATH)))
@@ -400,7 +250,6 @@ class MainWindow(QMainWindow):
         content_layout.addLayout(bottom_bar)
 
         self.setCentralWidget(central_widget)
-        self.app.installEventFilter(self)
 
         self.set_connection_status("Status: Disconnected")
 
@@ -491,7 +340,6 @@ class MainWindow(QMainWindow):
         self.apply_app_mode_state()
         self.update_all_tab_states(lightweight=True)
 
-        QTimer.singleShot(0, self.apply_window_corner_radius)
         QTimer.singleShot(300, self.show_setup_notice)
         QTimer.singleShot(1500, self.check_for_updates_on_startup)
 
@@ -539,45 +387,6 @@ class MainWindow(QMainWindow):
         self.resize(width, height)
         self._center_on_primary_screen()
 
-    def enable_windows_snap_styles(self):
-        if not sys.platform.startswith("win"):
-            return
-
-        try:
-            import ctypes
-
-            hwnd = int(self.winId())
-
-            GWL_STYLE = -16
-            WS_THICKFRAME = 0x00040000
-            WS_SYSMENU = 0x00080000
-            WS_MINIMIZEBOX = 0x00020000
-            WS_MAXIMIZEBOX = 0x00010000
-
-            SWP_NOMOVE = 0x0002
-            SWP_NOSIZE = 0x0001
-            SWP_NOZORDER = 0x0004
-            SWP_NOACTIVATE = 0x0010
-            SWP_FRAMECHANGED = 0x0020
-
-            user32 = ctypes.windll.user32
-            style = user32.GetWindowLongW(hwnd, GWL_STYLE)
-            style |= WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
-            user32.SetWindowLongW(hwnd, GWL_STYLE, style)
-            user32.SetWindowPos(
-                hwnd,
-                0,
-                0,
-                0,
-                0,
-                0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
-            )
-
-            self.apply_windows_native_corner_radius()
-        except Exception:
-            pass
-
     def update_title_bar_logo(self, mode: str = ""):
         if not hasattr(self, "title_bar"):
             return
@@ -587,243 +396,6 @@ class MainWindow(QMainWindow):
 
         resolved_mode = resolve_theme_mode(mode)
         self.title_bar.set_logo_mode(resolved_mode)
-
-    def apply_windows_native_corner_radius(self):
-        if not sys.platform.startswith("win"):
-            return
-
-        try:
-            import ctypes
-            from ctypes import wintypes
-
-            hwnd = int(self.winId())
-
-            DWMWA_WINDOW_CORNER_PREFERENCE = 33
-            DWMWCP_DEFAULT = 0
-            DWMWCP_DONOTROUND = 1
-            DWMWCP_ROUND = 2
-            DWMWCP_ROUNDSMALL = 3
-
-            preference = ctypes.c_int(DWMWCP_ROUND)
-
-            ctypes.windll.dwmapi.DwmSetWindowAttribute(
-                wintypes.HWND(hwnd),
-                wintypes.DWORD(DWMWA_WINDOW_CORNER_PREFERENCE),
-                ctypes.byref(preference),
-                ctypes.sizeof(preference),
-            )
-        except Exception:
-            pass
-
-    def apply_window_corner_radius(self):
-        if sys.platform.startswith("win"):
-            self.clearMask()
-            self.apply_windows_native_corner_radius()
-            return
-
-        if self.isMaximized() or self.isFullScreen():
-            self.clearMask()
-            return
-
-        rect = self.rect()
-        radius = self.WINDOW_CORNER_RADIUS
-        diameter = radius * 2
-
-        if rect.width() <= diameter or rect.height() <= diameter:
-            self.clearMask()
-            return
-
-        rounded = QRegion(QRect(radius, 0, rect.width() - diameter, rect.height()))
-        rounded = rounded.united(
-            QRegion(QRect(0, radius, rect.width(), rect.height() - diameter))
-        )
-        rounded = rounded.united(
-            QRegion(QRect(0, 0, diameter, diameter), QRegion.RegionType.Ellipse)
-        )
-        rounded = rounded.united(
-            QRegion(
-                QRect(rect.width() - diameter, 0, diameter, diameter),
-                QRegion.RegionType.Ellipse,
-            )
-        )
-        rounded = rounded.united(
-            QRegion(
-                QRect(0, rect.height() - diameter, diameter, diameter),
-                QRegion.RegionType.Ellipse,
-            )
-        )
-        rounded = rounded.united(
-            QRegion(
-                QRect(
-                    rect.width() - diameter,
-                    rect.height() - diameter,
-                    diameter,
-                    diameter,
-                ),
-                QRegion.RegionType.Ellipse,
-            )
-        )
-
-        self.setMask(rounded)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.apply_window_corner_radius()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        self.apply_window_corner_radius()
-
-    def toggle_maximize_restore(self):
-        if self.isMaximized():
-            self.showNormal()
-        else:
-            self.showMaximized()
-
-        self.update_maximize_button()
-        QTimer.singleShot(0, self.apply_window_corner_radius)
-
-    def update_maximize_button(self):
-        if hasattr(self, "title_bar"):
-            self.title_bar.maximize_button.setText("❐" if self.isMaximized() else "□")
-
-    def changeEvent(self, event):
-        if event.type() == QEvent.Type.WindowStateChange:
-            self.update_maximize_button()
-            QTimer.singleShot(0, self.apply_window_corner_radius)
-
-        super().changeEvent(event)
-
-    def _widget_belongs_to_window(self, obj):
-        return isinstance(obj, QWidget) and obj.window() is self
-
-    def _resize_hit_test(self, global_pos: QPoint) -> str:
-        if self.isMaximized() or self.isFullScreen():
-            return ""
-
-        geometry = self.frameGeometry()
-        margin = self.RESIZE_MARGIN
-
-        left = abs(global_pos.x() - geometry.left()) <= margin
-        right = abs(global_pos.x() - geometry.right()) <= margin
-        top = abs(global_pos.y() - geometry.top()) <= margin
-        bottom = abs(global_pos.y() - geometry.bottom()) <= margin
-
-        if top and left:
-            return "top_left"
-        if top and right:
-            return "top_right"
-        if bottom and left:
-            return "bottom_left"
-        if bottom and right:
-            return "bottom_right"
-        if left:
-            return "left"
-        if right:
-            return "right"
-        if top:
-            return "top"
-        if bottom:
-            return "bottom"
-
-        return ""
-
-    def _cursor_for_resize_direction(self, direction: str):
-        if direction in {"left", "right"}:
-            return Qt.CursorShape.SizeHorCursor
-
-        if direction in {"top", "bottom"}:
-            return Qt.CursorShape.SizeVerCursor
-
-        if direction in {"top_left", "bottom_right"}:
-            return Qt.CursorShape.SizeFDiagCursor
-
-        if direction in {"top_right", "bottom_left"}:
-            return Qt.CursorShape.SizeBDiagCursor
-
-        return Qt.CursorShape.ArrowCursor
-
-    def _apply_resize(self, global_pos: QPoint):
-        if not self._resizing or not self._resize_direction:
-            return
-
-        delta = global_pos - self._resize_start_pos
-        geometry = QRect(self._resize_start_geometry)
-
-        minimum_width = self.minimumWidth()
-        minimum_height = self.minimumHeight()
-
-        if "left" in self._resize_direction:
-            new_left = geometry.left() + delta.x()
-            max_left = geometry.right() - minimum_width
-            geometry.setLeft(min(new_left, max_left))
-
-        if "right" in self._resize_direction:
-            new_right = geometry.right() + delta.x()
-            min_right = geometry.left() + minimum_width
-            geometry.setRight(max(new_right, min_right))
-
-        if "top" in self._resize_direction:
-            new_top = geometry.top() + delta.y()
-            max_top = geometry.bottom() - minimum_height
-            geometry.setTop(min(new_top, max_top))
-
-        if "bottom" in self._resize_direction:
-            new_bottom = geometry.bottom() + delta.y()
-            min_bottom = geometry.top() + minimum_height
-            geometry.setBottom(max(new_bottom, min_bottom))
-
-        self.setGeometry(geometry)
-        self.apply_window_corner_radius()
-
-    def eventFilter(self, obj, event):
-        if self._closing:
-            return super().eventFilter(obj, event)
-
-        if not self._widget_belongs_to_window(obj):
-            return super().eventFilter(obj, event)
-
-        event_type = event.type()
-
-        if event_type == QEvent.Type.MouseButtonPress:
-            if event.button() == Qt.MouseButton.LeftButton:
-                global_pos = event.globalPosition().toPoint()
-                direction = self._resize_hit_test(global_pos)
-
-                if direction:
-                    self._resizing = True
-                    self._resize_direction = direction
-                    self._resize_start_pos = global_pos
-                    self._resize_start_geometry = self.frameGeometry()
-                    self.setCursor(self._cursor_for_resize_direction(direction))
-                    event.accept()
-                    return True
-
-        elif event_type == QEvent.Type.MouseMove:
-            global_pos = event.globalPosition().toPoint()
-
-            if self._resizing:
-                self._apply_resize(global_pos)
-                event.accept()
-                return True
-
-            direction = self._resize_hit_test(global_pos)
-
-            if direction:
-                self.setCursor(self._cursor_for_resize_direction(direction))
-            else:
-                self.unsetCursor()
-
-        elif event_type == QEvent.Type.MouseButtonRelease:
-            if self._resizing:
-                self._resizing = False
-                self._resize_direction = ""
-                self.unsetCursor()
-                self.apply_window_corner_radius()
-                event.accept()
-                return True
-
-        return super().eventFilter(obj, event)
 
     def tab_icon(self, name: str) -> QIcon:
         path = ASSETS_DIR / f"{name}.svg"
@@ -984,9 +556,6 @@ class MainWindow(QMainWindow):
 
         if saved.get("maximized"):
             QTimer.singleShot(0, self.showMaximized)
-
-        QTimer.singleShot(0, self.update_maximize_button)
-        QTimer.singleShot(0, self.apply_window_corner_radius)
 
     def save_window_geometry(self):
         try:

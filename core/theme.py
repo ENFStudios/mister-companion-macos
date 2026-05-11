@@ -12,6 +12,13 @@ _ORIGINAL_FONT = None
 BASE_DIR = Path(__file__).resolve().parent.parent
 ASSETS_DIR = BASE_DIR / "assets"
 
+# In a py2app bundle, Python files live in Resources/lib/python3.14/
+# but assets are placed in Resources/assets/ — four levels up from here.
+if not ASSETS_DIR.is_dir():
+    _bundle_assets = Path(__file__).resolve().parent.parent.parent.parent / "assets"
+    if _bundle_assets.is_dir():
+        ASSETS_DIR = _bundle_assets
+
 COMBO_ARROW_DARK_PATH = ASSETS_DIR / "combo_arrow_dark.svg"
 COMBO_ARROW_LIGHT_PATH = ASSETS_DIR / "combo_arrow_light.svg"
 SPIN_UP_DARK_PATH = ASSETS_DIR / "spin_up_dark.svg"
@@ -37,7 +44,8 @@ def init_theme_system(app: QApplication):
 
 
 def ensure_theme_assets():
-    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    if not ASSETS_DIR.is_dir():
+        return
 
     if not COMBO_ARROW_DARK_PATH.exists():
         COMBO_ARROW_DARK_PATH.write_text(

@@ -1,8 +1,7 @@
 import sys
 import webbrowser
-from pathlib import Path
 
-from PyQt6.QtCore import QSize, QThread, QTimer, Qt, pyqtSignal
+from PyQt6.QtCore import QRect, QSize, QThread, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
@@ -31,7 +30,7 @@ from core.device_profiles import (
     update_device,
 )
 from core.profile_folder_sync import profile_assigned_to_ip, profile_removed, profile_renamed
-from core.theme import apply_theme, resolve_theme_mode
+from core.theme import ASSETS_DIR, apply_theme, resolve_theme_mode
 from core.updater import check_for_update, open_release_page
 from core.zaplauncher_db import rename_db
 from ui.dialogs.device_dialog import DeviceDialog
@@ -50,8 +49,6 @@ from ui.tabs.wallpapers_tab import WallpapersTab
 from ui.tabs.zapscripts_tab import ZapScriptsTab
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-ASSETS_DIR = BASE_DIR / "assets"
 ICON_PATH = ASSETS_DIR / "icon.png"
 LOGO_LIGHT_PATH = ASSETS_DIR / "logo_1.png"
 LOGO_DARK_PATH = ASSETS_DIR / "logo_2.png"

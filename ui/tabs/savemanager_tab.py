@@ -176,9 +176,6 @@ class SaveManagerTab(QWidget):
         self.restore_button = QPushButton("Restore Backup")
         self.sync_button = QPushButton("Sync Saves")
 
-        self.backup_button.setFixedWidth(115)
-        self.restore_button.setFixedWidth(115)
-        self.sync_button.setFixedWidth(115)
 
         button_row.addStretch()
         button_row.addWidget(self.backup_button)
@@ -225,8 +222,6 @@ class SaveManagerTab(QWidget):
         self.open_backup_folder_button = QPushButton("Browse Backups")
         self.open_sync_folder_button = QPushButton("Browse Sync Folder")
 
-        self.open_backup_folder_button.setFixedWidth(115)
-        self.open_sync_folder_button.setFixedWidth(132)
 
         folder_row.addStretch()
         folder_row.addWidget(self.open_backup_folder_button)

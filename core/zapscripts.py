@@ -35,7 +35,12 @@ def _send_ws_payload(connection, payload: dict, timeout: int = 5):
 
     ws = None
     try:
-        ws = create_connection(ws_url, timeout=timeout)
+        ws = create_connection(
+            ws_url,
+            timeout=timeout,
+            suppress_origin=True,
+        )
+
         ws.send(json.dumps(payload))
         response_raw = ws.recv()
 
@@ -243,8 +248,6 @@ def read_media_db_entries(
     try:
         db = sqlite3.connect(str(local_path))
 
-        # Some ROM/listing names can contain malformed or legacy encoded bytes.
-        # Without this, one bad filename can crash the entire scan.
         db.text_factory = lambda value: value.decode("utf-8", errors="replace")
 
         db.row_factory = sqlite3.Row

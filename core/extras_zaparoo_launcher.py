@@ -157,10 +157,11 @@ def _find_mister_section(lines: list[str]) -> tuple[int, int]:
         return -1, -1
 
     end = len(lines)
-    section_pattern = re.compile(r"^\s*\[[^\]]+\]\s*$")
 
     for index in range(start + 1, len(lines)):
-        if section_pattern.match(lines[index]):
+        stripped = lines[index].strip()
+
+        if stripped.startswith("["):
             end = index
             break
 
@@ -234,7 +235,9 @@ def _patch_mister_ini_for_zaparoo_launcher(text: str) -> str:
     if start == -1:
         patched_lines = [
             "[MiSTer]",
-            *ZAPAROO_LAUNCHER_INI_BLOCK.splitlines(),
+            "",
+            "main=zaparoo/MiSTer_Zaparoo",
+            "alt_launcher=zaparoo/launcher",
             "",
         ]
         patched_lines.extend(lines)
@@ -249,15 +252,18 @@ def _patch_mister_ini_for_zaparoo_launcher(text: str) -> str:
     while cleaned_body and not cleaned_body[-1].strip():
         cleaned_body.pop()
 
-    if cleaned_body:
-        cleaned_body.append("")
+    patched_lines = []
+    patched_lines.extend(before)
+    patched_lines.extend(cleaned_body)
 
-    cleaned_body.extend(ZAPAROO_LAUNCHER_INI_BLOCK.splitlines())
+    patched_lines.append("")
+    patched_lines.append("main=zaparoo/MiSTer_Zaparoo")
+    patched_lines.append("alt_launcher=zaparoo/launcher")
 
-    if after and after[0].strip():
-        cleaned_body.append("")
+    if after:
+        patched_lines.append("")
+        patched_lines.extend(after)
 
-    patched_lines = before + cleaned_body + after
     return "\n".join(patched_lines).rstrip("\n") + "\n"
 
 
@@ -592,7 +598,8 @@ def install_or_update_zaparoo_launcher(connection, log):
 
     return {
         "installed_version": version,
-        "reboot_required": True,
+        "soft_reboot_required": True,
+        "reboot_required": False,
     }
 
 
@@ -671,7 +678,8 @@ def uninstall_zaparoo_launcher(connection, log):
 
     return {
         "uninstalled": True,
-        "reboot_required": True,
+        "soft_reboot_required": True,
+        "reboot_required": False,
     }
 
 

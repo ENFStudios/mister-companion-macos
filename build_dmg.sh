@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="MiSTer Companion"
-VERSION="4.0.4"
+VERSION="4.0.8"
 BUNDLE_ID="com.enfstudios.mistercompanion"
 APP_PATH="dist/${APP_NAME}.app"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"

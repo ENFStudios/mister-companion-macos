@@ -12,7 +12,7 @@ This port provides a native `.app` bundle and DMG installer for Apple Silicon Ma
 
 | Platform | File | Link |
 |---|---|---|
-| macOS (Apple Silicon, arm64) | `MiSTer Companion-4.0.4.dmg` | **[Download v4.0.4](https://github.com/ENFStudios/mister-companion-macos/releases/download/v4.0.4/MiSTer.Companion-4.0.4.dmg)** |
+| macOS (Apple Silicon, arm64) | `MiSTer Companion-4.0.8.dmg` | **[Download v4.0.8](https://github.com/ENFStudios/mister-companion-macos/releases/latest)** |
 
 Older versions remain on the [releases page](https://github.com/ENFStudios/mister-companion-macos/releases).
 
@@ -140,9 +140,10 @@ MiSTer Companion uses a tabbed interface to organize functionality.
 
 ### Connection
 - Connect to a MiSTer over SSH
-- Save and manage multiple devices
+- Save and manage multiple device profiles
 - Scan the local network for MiSTer devices
 - Automatic reconnect after a remote reboot
+- Global UI scale selector (75 %–125 %) for Retina and external displays
 
 ### Device
 - View SD card and USB storage usage
@@ -161,6 +162,7 @@ MiSTer Companion uses a tabbed interface to organize functionality.
 - Live SSH output while scripts run
 
 ### ZapScripts
+- Browse the full Zaparoo media library and launch games directly from the app
 - Trigger scripts via the Zaparoo Core API: `update_all`, `migrate_sd`, `Insert-Coin`
 - Open the Bluetooth or OSD menu, cycle wallpaper, return to the MiSTer home screen
 - Launch and Controls are disabled automatically if Zaparoo is not installed
@@ -174,9 +176,22 @@ MiSTer Companion uses a tabbed interface to organize functionality.
 
 ### Wallpapers
 - Install wallpaper packs via a JSON database system
-- Multiple wallpaper sources supported
+- Multiple wallpaper sources supported (Ranny, PCN, OT4KU and more)
 - Automatic update detection
 - Built-in SSH output log
+
+### Extras
+- Install and manage the **Zaparoo Launcher/UI Beta** on MiSTer
+- Install and update **RetroAchievement Cores** (switches automatically to a dedicated MiSTer_RA.ini)
+- Install extras like **3S-ARM** and **Sonic Mania**
+- All operations run live with SSH output and optional reboot prompts
+
+### RetroAchievements Viewer
+- View your recent achievement unlocks directly within the app
+- Requires a RetroAchievements account
+
+### Offline Mode
+- Flash SD, MiSTer Settings, and script operations work without a live MiSTer — directly on a mounted SD card
 
 ---
 

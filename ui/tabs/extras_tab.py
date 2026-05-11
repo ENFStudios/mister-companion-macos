@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from core.device_actions import return_to_menu_remote
 from core.extras_actions import (
     get_3sx_status,
     get_sonic_mania_status,
@@ -944,17 +945,6 @@ class ExtrasTab(QWidget):
             self.ra_cores_show_install_info_after_success = False
             self.show_ra_cores_install_info()
 
-        if (
-            message in {
-                "Zaparoo Launcher/UI Beta installed.",
-                "Zaparoo Launcher/UI Beta updated.",
-                "Zaparoo Launcher/UI Beta uninstalled.",
-            }
-            and self.zaparoo_launcher_show_reboot_after_success
-        ):
-            self.zaparoo_launcher_show_reboot_after_success = False
-            self.prompt_zaparoo_launcher_reboot_required()
-
     def on_worker_error(self, message):
         self.ra_cores_show_install_info_after_success = False
         self.zaparoo_launcher_show_reboot_after_success = False
@@ -993,6 +983,23 @@ class ExtrasTab(QWidget):
 
     def on_worker_result(self, result):
         task_kind = self.current_task_kind
+
+        if isinstance(result, dict) and result.get("soft_reboot_required"):
+            self.prompt_zaparoo_launcher_soft_reboot_required()
+            return
+
+        if isinstance(result, dict) and result.get("reboot_required"):
+            if self.is_offline_mode():
+                QMessageBox.information(
+                    self,
+                    "Reboot Required",
+                    (
+                        "Changes were applied to the Offline SD Card.\n\n"
+                        "Please reboot your MiSTer after inserting the SD card "
+                        "for the changes to take effect."
+                    ),
+                )
+            return
 
         if not self._is_check_updates_task(task_kind):
             return
@@ -1458,7 +1465,7 @@ class ExtrasTab(QWidget):
         if not self.is_online_connected():
             return
 
-        self.zaparoo_launcher_show_reboot_after_success = True
+        self.zaparoo_launcher_show_reboot_after_success = False
 
         def task(log):
             return backend_install_or_update_zaparoo_launcher(self.connection, log)
@@ -1509,7 +1516,7 @@ class ExtrasTab(QWidget):
                 "This will also remove the Zaparoo launcher main and alt_launcher "
                 "entries from the [MiSTer] section in MiSTer.ini.\n\n"
                 "Your existing Zaparoo installation and zaparoo.sh script will be left untouched.\n\n"
-                "A reboot will be required after uninstall."
+                "A soft reboot will be required after uninstall."
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -1518,7 +1525,7 @@ class ExtrasTab(QWidget):
             self.zaparoo_launcher_show_reboot_after_success = False
             return
 
-        self.zaparoo_launcher_show_reboot_after_success = True
+        self.zaparoo_launcher_show_reboot_after_success = False
 
         def task(log):
             return backend_uninstall_zaparoo_launcher(self.connection, log)
@@ -1526,71 +1533,55 @@ class ExtrasTab(QWidget):
         self._clear_cached_update_result(self.EXTRA_ZAPAROO_LAUNCHER)
         self._run_worker(task, "Zaparoo Launcher/UI Beta uninstalled.")
 
-    def prompt_zaparoo_launcher_reboot_required(self):
+    def prompt_zaparoo_launcher_soft_reboot_required(self):
         if self.is_offline_mode():
             return
 
-        reboot_now = QMessageBox.question(
+        soft_reboot_now = QMessageBox.question(
             self,
-            "Reboot Required",
+            "Soft Reboot Required",
             (
-                "Zaparoo Launcher/UI Beta changes were applied successfully.\n\n"
-                "A reboot is required before the changes take effect.\n\n"
-                "Reboot MiSTer now?"
+                "A soft reboot is required to apply the Zaparoo Launcher/UI Beta changes.\n\n"
+                "Do you want to soft reboot MiSTer now?"
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
         )
 
-        if reboot_now != QMessageBox.StandardButton.Yes:
+        if soft_reboot_now != QMessageBox.StandardButton.Yes:
             return
 
-        self.reboot_mister_from_extras()
+        self.soft_reboot_mister_from_extras()
 
-    def reboot_mister_from_extras(self):
+    def soft_reboot_mister_from_extras(self):
         if not self.is_online_connected():
             QMessageBox.warning(self, "Not Connected", "Connect to a MiSTer first.")
             return
 
         try:
-            self.apply_disconnected_state()
-        except Exception:
-            pass
-
-        try:
             if hasattr(self.main_window, "set_connection_status"):
-                self.main_window.set_connection_status("Status: Rebooting...")
+                self.main_window.set_connection_status("Status: Soft rebooting...")
         except Exception:
             pass
 
         try:
-            self.connection.reboot()
+            return_to_menu_remote(self.connection)
         except Exception as e:
             QMessageBox.critical(
                 self,
-                "Reboot Failed",
-                f"Unable to reboot MiSTer:\n\n{e}",
+                "Soft Reboot Failed",
+                f"Unable to soft reboot MiSTer:\n\n{e}",
             )
             return
 
         try:
             if hasattr(self.main_window, "start_reboot_reconnect_polling"):
                 self.main_window.start_reboot_reconnect_polling()
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Reconnect Polling",
-                    "MiSTer reboot was sent, but reconnect polling is not available.",
-                )
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                "Reconnect Polling",
-                (
-                    "MiSTer reboot was sent, but reconnect polling could not be started:\n\n"
-                    f"{e}"
-                ),
-            )
+                return
+        except Exception:
+            pass
+
+        self.refresh_status()
 
     def show_ra_cores_install_info(self):
         QMessageBox.information(

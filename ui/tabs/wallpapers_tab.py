@@ -335,7 +335,6 @@ class WallpapersTab(QWidget):
         bottom_actions_row.addStretch()
 
         self.open_wallpaper_folder_button = QPushButton("Open Wallpaper Folder")
-        self.open_wallpaper_folder_button.setFixedWidth(190)
 
         bottom_actions_row.addWidget(self.open_wallpaper_folder_button)
         bottom_actions_row.addStretch()
@@ -350,7 +349,6 @@ class WallpapersTab(QWidget):
         header_row.addStretch()
 
         self.hide_console_button = QPushButton("Hide")
-        self.hide_console_button.setFixedWidth(70)
         header_row.addWidget(self.hide_console_button)
 
         console_layout.addLayout(header_row)
@@ -404,13 +402,8 @@ class WallpapersTab(QWidget):
         layout.setSpacing(10)
 
         self.install_169_button = QPushButton("Install 16:9 Wallpapers")
-        self.install_169_button.setFixedWidth(190)
-
         self.install_43_button = QPushButton("Install 4:3 Wallpapers")
-        self.install_43_button.setFixedWidth(190)
-
         self.remove_ranny_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_ranny_button.setFixedWidth(220)
 
         layout.addLayout(
             self._build_button_row(
@@ -434,10 +427,7 @@ class WallpapersTab(QWidget):
         layout.setSpacing(10)
 
         self.install_pcn_button = QPushButton("Install Wallpapers")
-        self.install_pcn_button.setFixedWidth(190)
-
         self.remove_pcn_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_pcn_button.setFixedWidth(220)
 
         layout.addLayout(
             self._build_button_row(
@@ -456,10 +446,7 @@ class WallpapersTab(QWidget):
         layout.setSpacing(10)
 
         self.install_pcn_premium_button = QPushButton("Install Wallpapers")
-        self.install_pcn_premium_button.setFixedWidth(190)
-
         self.remove_pcn_premium_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_pcn_premium_button.setFixedWidth(220)
 
         layout.addLayout(
             self._build_button_row(
@@ -478,10 +465,7 @@ class WallpapersTab(QWidget):
         layout.setSpacing(10)
 
         self.install_ot4ku_button = QPushButton("Install Wallpapers")
-        self.install_ot4ku_button.setFixedWidth(190)
-
         self.remove_ot4ku_button = QPushButton("Remove Installed Wallpapers")
-        self.remove_ot4ku_button.setFixedWidth(220)
 
         layout.addLayout(
             self._build_button_row(

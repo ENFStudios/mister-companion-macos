@@ -8,6 +8,8 @@ ARCADE_ORGANIZER_INI_PATH = "/media/fat/Scripts/update_arcade-organizer.ini"
 MISTER_FRONTIER_SECTION = "MiSTerOrganize/MiSTer_Frontier"
 MISTER_FRONTIER_DB_URL = "https://raw.githubusercontent.com/MiSTerOrganize/MiSTer_Frontier/db/db.json.zip"
 
+MANUALSDB_PATH = "/media/fat/downloader_ajgowans_manualsdb.ini"
+
 MISTER_FRONTIER_FILTERS = {
     "All Frontier Cores": "",
     "PICO-8 only": "pico-8",
@@ -23,12 +25,65 @@ MISTER_FRONTIER_FILTER_LABELS = {
     for label, value in MISTER_FRONTIER_FILTERS.items()
 }
 
+MANUALSDB_SOURCES = [
+    ("3do", "3DO"),
+    ("arcadia2001", "Arcadia 2001"),
+    ("atari2600", "Atari 2600"),
+    ("atari5200", "Atari 5200"),
+    ("atari7800", "Atari 7800"),
+    ("atarilynx", "Atari Lynx"),
+    ("atarixegs", "Atari XEGS"),
+    ("avision", "Adventure Vision"),
+    ("ballyastrocade", "Bally Astrocade"),
+    ("bbcbridge", "BBC Bridge"),
+    ("cdi", "CD-i"),
+    ("channelf", "Channel F"),
+    ("colecovision", "ColecoVision"),
+    ("creativision", "CreatiVision"),
+    ("fds", "Famicom Disk System"),
+    ("gameandwatch", "Game & Watch"),
+    ("gameboy", "Game Boy"),
+    ("gamegear", "Game Gear"),
+    ("gba", "Game Boy Advance"),
+    ("gbc", "Game Boy Color"),
+    ("intellivision", "Intellivision"),
+    ("jaguar", "Jaguar"),
+    ("jaguarcd", "Jaguar CD"),
+    ("lcdhandhelds", "LCD Handhelds"),
+    ("megadrive", "Mega Drive"),
+    ("n64", "Nintendo 64"),
+    ("neogeoaes", "Neo Geo AES"),
+    ("neogeocd", "Neo Geo CD"),
+    ("nes", "NES"),
+    ("ngp", "Neo Geo Pocket"),
+    ("ngpc", "Neo Geo Pocket Color"),
+    ("odyssey2", "Odyssey 2"),
+    ("pokemonmini", "Pokémon Mini"),
+    ("psx", "PlayStation"),
+    ("pyuutajr", "Pyuuta Jr."),
+    ("sega32x", "Sega 32X"),
+    ("segacd", "Sega CD"),
+    ("segasaturn", "Sega Saturn"),
+    ("segasg1000", "SG-1000"),
+    ("sms", "Master System"),
+    ("snes", "SNES"),
+    ("supervision", "Supervision"),
+    ("turbografx16", "TurboGrafx-16"),
+    ("turbografxcd", "TurboGrafx-CD"),
+    ("vc4000", "VC 4000"),
+    ("vectrex", "Vectrex"),
+    ("wonderswanc", "WonderSwan Color"),
+]
+
+MANUALSDB_IDS = [source_id for source_id, _label in MANUALSDB_SOURCES]
+
 
 def split_downloader_paths():
     return {
         "main": "/media/fat/downloader.ini",
         "arcade": "/media/fat/downloader_arcade_roms_db.ini",
         "bios": "/media/fat/downloader_bios_db.ini",
+        "manualsdb": MANUALSDB_PATH,
     }
 
 
@@ -114,6 +169,7 @@ def read_downloader_files(sftp):
         "main": read_remote_text(sftp, paths["main"], ""),
         "arcade": read_remote_text(sftp, paths["arcade"], ""),
         "bios": read_remote_text(sftp, paths["bios"], ""),
+        "manualsdb": read_remote_text(sftp, paths["manualsdb"], ""),
     }
 
 
@@ -123,6 +179,7 @@ def read_downloader_files_local(sd_root):
         "main": read_local_text(sd_root, paths["main"], ""),
         "arcade": read_local_text(sd_root, paths["arcade"], ""),
         "bios": read_local_text(sd_root, paths["bios"], ""),
+        "manualsdb": read_local_text(sd_root, paths["manualsdb"], ""),
     }
 
 
@@ -199,6 +256,50 @@ def upsert_section_lines(lines, section, new_section_lines):
 
 def section_enabled_in_text(text, section):
     return f"[{section}]" in text and f";[{section}]" not in text
+
+
+def build_manualsdb_ini(selected_ids):
+    selected = [source_id for source_id in selected_ids if source_id in MANUALSDB_IDS]
+    lines = []
+
+    for source_id in selected:
+        if lines:
+            lines.append("")
+
+        section = f"ajgowans/manualsdb-{source_id}"
+        url = f"https://raw.githubusercontent.com/ajgowans/manualsdb-{source_id}/db/db.json.zip"
+
+        lines += [
+            f"[{section}]",
+            f"db_url = {url}",
+        ]
+
+    if not lines:
+        return ""
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def parse_manualsdb_ini(text):
+    selected = []
+
+    for source_id in MANUALSDB_IDS:
+        section = f"ajgowans/manualsdb-{source_id}"
+
+        if section_enabled_in_text(text, section):
+            selected.append(source_id)
+
+    return selected
+
+
+def normalize_manualsdb_selected(selected_ids):
+    selected = []
+
+    for source_id in selected_ids or []:
+        if source_id in MANUALSDB_IDS and source_id not in selected:
+            selected.append(source_id)
+
+    return selected
 
 
 def ensure_split_downloader_configs(sftp):
@@ -283,11 +384,12 @@ def ensure_split_downloader_configs_local(sd_root):
         write_local_text(sd_root, paths["bios"], "\n".join(bios_lines).rstrip() + "\n")
 
 
-def _build_config_data(ini_data, json_data, arcade_org_ini):
+def _build_config_data(ini_data, json_data, arcade_org_ini, manualsdb_ini=""):
     def is_enabled(section):
         return section_enabled_in_text(ini_data, section)
 
     arcade_org_ini_enabled = "ARCADE_ORGANIZER=true" in arcade_org_ini
+    manualsdb_selected = parse_manualsdb_ini(manualsdb_ini)
 
     data = {
         "main_cores": is_enabled("distribution_mister"),
@@ -323,6 +425,8 @@ def _build_config_data(ini_data, json_data, arcade_org_ini):
         "pcn_challenge_wallpapers": is_enabled("pcn_challenge_wallpapers"),
         "pcn_premium_wallpapers": is_enabled("pcn_premium_wallpapers"),
         "anime0t4ku_mister_scripts": is_enabled("anime0t4ku_mister_scripts"),
+        "manualsdb": bool(manualsdb_selected),
+        "manualsdb_selected": manualsdb_selected,
 
         "ranny_wallpapers": is_enabled("Ranny-Snice/Ranny-Snice-Wallpapers"),
         "ranny_wallpapers_source": "All Wallpapers",
@@ -376,7 +480,12 @@ def load_update_all_config(connection):
 
         arcade_org_ini = read_remote_text(sftp, ARCADE_ORGANIZER_INI_PATH, "")
 
-        return _build_config_data(ini_data, json_data, arcade_org_ini)
+        return _build_config_data(
+            ini_data,
+            json_data,
+            arcade_org_ini,
+            files["manualsdb"],
+        )
     finally:
         sftp.close()
 
@@ -398,7 +507,12 @@ def load_update_all_config_local(sd_root):
 
     arcade_org_ini = read_local_text(sd_root, ARCADE_ORGANIZER_INI_PATH, "")
 
-    return _build_config_data(ini_data, json_data, arcade_org_ini)
+    return _build_config_data(
+        ini_data,
+        json_data,
+        arcade_org_ini,
+        files["manualsdb"],
+    )
 
 
 def normalize_ini_lines(lines):
@@ -743,6 +857,18 @@ def _prepare_config_lines_and_json(config, main_lines, arcade_lines, bios_lines,
     return main_lines, arcade_lines, bios_lines, json_data
 
 
+def _prepare_manualsdb_ini(config):
+    if not config.get("manualsdb", False):
+        return ""
+
+    selected = normalize_manualsdb_selected(config.get("manualsdb_selected", []))
+
+    if not selected:
+        selected = list(MANUALSDB_IDS)
+
+    return build_manualsdb_ini(selected)
+
+
 def save_update_all_config(connection, config):
     sftp = connection.client.open_sftp()
     try:
@@ -785,6 +911,12 @@ def save_update_all_config(connection, config):
         write_remote_text(sftp, paths["arcade"], "\n".join(arcade_lines).rstrip() + "\n")
         write_remote_text(sftp, paths["bios"], "\n".join(bios_lines).rstrip() + "\n")
 
+        manualsdb_ini = _prepare_manualsdb_ini(config)
+        if manualsdb_ini:
+            write_remote_text(sftp, paths["manualsdb"], manualsdb_ini)
+        else:
+            remove_remote_file(sftp, paths["manualsdb"])
+
         with sftp.open(JSON_PATH, "w") as f:
             f.write(json.dumps(json_data, indent=4))
     finally:
@@ -825,4 +957,11 @@ def save_update_all_config_local(sd_root, config):
     write_local_text(sd_root, paths["main"], "\n".join(main_lines).rstrip() + "\n")
     write_local_text(sd_root, paths["arcade"], "\n".join(arcade_lines).rstrip() + "\n")
     write_local_text(sd_root, paths["bios"], "\n".join(bios_lines).rstrip() + "\n")
+
+    manualsdb_ini = _prepare_manualsdb_ini(config)
+    if manualsdb_ini:
+        write_local_text(sd_root, paths["manualsdb"], manualsdb_ini)
+    else:
+        remove_local_file(sd_root, paths["manualsdb"])
+
     write_local_text(sd_root, JSON_PATH, json.dumps(json_data, indent=4))

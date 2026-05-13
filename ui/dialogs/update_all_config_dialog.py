@@ -25,6 +25,7 @@ from core.update_all_config import (
     save_update_all_config,
     save_update_all_config_local,
 )
+from ui.dialogs.manuals_db_config_dialog import ManualsDbConfigDialog
 
 
 class UpdateAllConfigDialog(QDialog):
@@ -33,6 +34,8 @@ class UpdateAllConfigDialog(QDialog):
         self.connection = connection
         self.sd_root = sd_root
         self.offline_mode = bool(sd_root)
+
+        self.manualsdb_selected = []
 
         self.retro_pending_code = ""
         self.retro_pending_link = ""
@@ -191,6 +194,9 @@ class UpdateAllConfigDialog(QDialog):
         self.anime0t4ku_wallpapers_check = QCheckBox("Anime0t4ku Wallpapers")
         self.pcn_challenge_wallpapers_check = QCheckBox("PCN Challenge Wallpapers")
         self.ranny_wallpapers_check = QCheckBox("Ranny Snice Wallpapers")
+        self.manualsdb_check = QCheckBox("Game Manuals (EN) DB's")
+        self.manualsdb_config_button = QPushButton("Configure")
+
         self.ranny_wallpapers_source_combo = QComboBox()
         self.ranny_wallpapers_source_combo.addItems([
             "16:9 Wallpapers",
@@ -216,6 +222,15 @@ class UpdateAllConfigDialog(QDialog):
         wallpaper_row.addStretch()
         extra_group.layout().addLayout(wallpaper_row)
         self.ranny_wallpapers_check.toggled.connect(self.update_wallpaper_state)
+
+        manualsdb_row = QHBoxLayout()
+        manualsdb_row.addWidget(self.manualsdb_check)
+        manualsdb_row.addStretch()
+        manualsdb_row.addWidget(self.manualsdb_config_button)
+        extra_group.layout().addLayout(manualsdb_row)
+
+        self.manualsdb_check.toggled.connect(self.update_manualsdb_state)
+        self.manualsdb_config_button.clicked.connect(self.on_manualsdb_configure)
 
         community_group = self._group("Community Sources", self.left_column_layout)
         self.insert_coin_check = QCheckBox("Insert-Coin")
@@ -563,6 +578,21 @@ class UpdateAllConfigDialog(QDialog):
     def update_mister_frontier_state(self):
         self.mister_frontier_source_combo.setEnabled(self.mister_frontier_check.isChecked())
 
+    def update_manualsdb_state(self):
+        enabled = self.manualsdb_check.isChecked()
+        self.manualsdb_config_button.setEnabled(enabled)
+
+    def on_manualsdb_configure(self):
+        dialog = ManualsDbConfigDialog(self.manualsdb_selected, self)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.manualsdb_selected = dialog.get_selected_ids()
+
+            if self.manualsdb_selected:
+                self.manualsdb_check.setChecked(True)
+
+            self.update_manualsdb_state()
+
     def load_current_config(self):
         try:
             if self.offline_mode:
@@ -610,9 +640,13 @@ class UpdateAllConfigDialog(QDialog):
         self.ranny_wallpapers_check.setChecked(data["ranny_wallpapers"])
         self.ranny_wallpapers_source_combo.setCurrentText(data["ranny_wallpapers_source"])
 
+        self.manualsdb_selected = list(data.get("manualsdb_selected", []))
+        self.manualsdb_check.setChecked(data.get("manualsdb", False))
+
         self.update_jt_beta_state()
         self.update_wallpaper_state()
         self.update_mister_frontier_state()
+        self.update_manualsdb_state()
 
     def collect_config(self):
         return {
@@ -650,6 +684,8 @@ class UpdateAllConfigDialog(QDialog):
             "pcn_premium_wallpapers": self.pcn_premium_wallpapers_check.isChecked(),
             "ranny_wallpapers": self.ranny_wallpapers_check.isChecked(),
             "ranny_wallpapers_source": self.ranny_wallpapers_source_combo.currentText(),
+            "manualsdb": self.manualsdb_check.isChecked(),
+            "manualsdb_selected": list(self.manualsdb_selected),
         }
 
     def on_save(self):

@@ -6,10 +6,12 @@ from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
@@ -31,9 +33,18 @@ from core.device_profiles import (
 )
 from core.profile_folder_sync import profile_assigned_to_ip, profile_removed, profile_renamed
 from core.theme import ASSETS_DIR, apply_theme, resolve_theme_mode
-from core.updater import check_for_update, open_release_page
+from core.updater import (
+    check_for_update,
+    download_dmg,
+    get_current_app_path,
+    get_release_dmg_url,
+    is_macos,
+    launch_macos_update,
+    open_release_page,
+)
 from core.zaplauncher_db import rename_db
 from ui.dialogs.device_dialog import DeviceDialog
+from ui.dialogs.manuals_dialog import ManualsDialog
 from ui.dialogs.network_scanner_dialog import NetworkScannerDialog
 from ui.dialogs.retroachievements_dialog import RetroAchievementsDialog
 from ui.dialogs.setup_notice_dialog import SetupNoticeDialog
@@ -73,6 +84,28 @@ class UpdateCheckWorker(QThread):
             self.result.emit(info)
         except Exception as e:
             self.error.emit(str(e))
+
+
+class DownloadWorker(QThread):
+    progress = pyqtSignal(int, int)
+    finished_ok = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, url: str, dest: str):
+        super().__init__()
+        self.url = url
+        self.dest = dest
+
+    def run(self):
+        try:
+            from pathlib import Path
+            download_dmg(self.url, Path(self.dest), self._on_progress)
+            self.finished_ok.emit(self.dest)
+        except Exception as e:
+            self.error.emit(str(e))
+
+    def _on_progress(self, done, total):
+        self.progress.emit(done, total)
 
 
 class CustomTitleBar(QWidget):
@@ -230,6 +263,10 @@ class MainWindow(QMainWindow):
         self.feedback_button.clicked.connect(self.open_feedback)
         bottom_bar.addWidget(self.feedback_button)
 
+        self.manuals_button = QPushButton("Manuals")
+        self.manuals_button.clicked.connect(self.open_manuals)
+        bottom_bar.addWidget(self.manuals_button)
+
         self.retroachievements_button = QPushButton("RetroAchievements")
         self.retroachievements_button.clicked.connect(self.open_retroachievements)
         bottom_bar.addWidget(self.retroachievements_button)
@@ -339,6 +376,15 @@ class MainWindow(QMainWindow):
 
         QTimer.singleShot(300, self.show_setup_notice)
         QTimer.singleShot(1500, self.check_for_updates_on_startup)
+
+    def open_manuals(self):
+        if self._closing:
+            return
+        if self.is_offline_mode():
+            QMessageBox.information(self, "Manuals", "Manuals is only available in Online Mode.")
+            return
+        dialog = ManualsDialog(self)
+        dialog.exec()
 
     def open_retroachievements(self):
         if self._closing:
@@ -772,21 +818,36 @@ class MainWindow(QMainWindow):
         show_no_update = getattr(self.update_check_worker, "show_no_update", True)
 
         if info.update_available:
-            reply = QMessageBox.question(
-                self,
-                "Update Available",
-                (
-                    f"A new version of MiSTer Companion is available.\n\n"
-                    f"Current version: {info.current_version}\n"
-                    f"Latest version: {info.latest_version}\n\n"
-                    f"Do you want to open the download page?"
-                ),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
-            )
-
-            if reply == QMessageBox.StandardButton.Yes:
-                open_release_page(info.release_url)
+            if is_macos() and get_current_app_path() is not None:
+                reply = QMessageBox.question(
+                    self,
+                    "Update Available",
+                    (
+                        f"A new version of MiSTer Companion is available.\n\n"
+                        f"Current version: {info.current_version}\n"
+                        f"Latest version: {info.latest_version}\n\n"
+                        f"Download and install automatically?"
+                    ),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self._start_download_update(info)
+            else:
+                reply = QMessageBox.question(
+                    self,
+                    "Update Available",
+                    (
+                        f"A new version of MiSTer Companion is available.\n\n"
+                        f"Current version: {info.current_version}\n"
+                        f"Latest version: {info.latest_version}\n\n"
+                        f"Do you want to open the download page?"
+                    ),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    open_release_page(info.release_url)
         elif show_no_update:
             QMessageBox.information(
                 self,
@@ -796,6 +857,94 @@ class MainWindow(QMainWindow):
                     f"Current version: {info.current_version}"
                 ),
             )
+
+    def _start_download_update(self, info):
+        try:
+            result = get_release_dmg_url()
+        except Exception as e:
+            QMessageBox.warning(self, "Update Failed", f"Could not fetch download URL:\n\n{e}")
+            return
+
+        if result is None:
+            QMessageBox.warning(self, "Update Failed", "No DMG found in the latest release.")
+            return
+
+        url, filename = result
+        dest = f"/tmp/{filename}"
+
+        self._download_dialog = QDialog(self)
+        self._download_dialog.setWindowTitle("")
+        self._download_dialog.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint)
+        self._download_dialog.setFixedWidth(340)
+        self._download_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        layout = QVBoxLayout(self._download_dialog)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(12)
+
+        label = QLabel(f"Downloading {info.latest_version}…")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+
+        self._download_bar = QProgressBar()
+        self._download_bar.setRange(0, 100)
+        self._download_bar.setValue(0)
+        self._download_bar.setTextVisible(True)
+        layout.addWidget(self._download_bar)
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setFixedWidth(90)
+        cancel_row = QHBoxLayout()
+        cancel_row.addStretch()
+        cancel_row.addWidget(cancel_btn)
+        layout.addLayout(cancel_row)
+
+        self._download_worker = DownloadWorker(url, dest)
+        self._download_worker.progress.connect(self._on_download_progress)
+        self._download_worker.finished_ok.connect(self._on_download_finished)
+        self._download_worker.error.connect(self._on_download_error)
+        cancel_btn.clicked.connect(self._cancel_download)
+
+        self._download_worker.start()
+        self._download_dialog.exec()
+
+    def _cancel_download(self):
+        if hasattr(self, "_download_worker") and self._download_worker.isRunning():
+            self._download_worker.terminate()
+        self._download_dialog.reject()
+
+    def _on_download_progress(self, done, total):
+        if total > 0:
+            self._download_bar.setValue(int(done / total * 100))
+
+    def _on_download_finished(self, dmg_path):
+        self._download_dialog.accept()
+        app_path = get_current_app_path()
+        if app_path is None:
+            QMessageBox.warning(self, "Update Failed", "Could not determine app location.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Ready to Install",
+            (
+                "The update has been downloaded.\n\n"
+                "MiSTer Companion will quit and the update will install automatically.\n\n"
+                "Restart now?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        from pathlib import Path
+        if launch_macos_update(Path(dmg_path), app_path):
+            self.app.quit()
+
+    def _on_download_error(self, message):
+        self._download_dialog.reject()
+        QMessageBox.warning(self, "Download Failed", f"Could not download update:\n\n{message}")
 
     def on_update_check_error(self, message: str):
         if self._closing:

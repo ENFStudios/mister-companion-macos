@@ -1,4 +1,5 @@
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -230,6 +231,99 @@ def _make_filename(path: str, parent_dir: str | None = None) -> str:
     return Path(stripped).name
 
 
+_CD_TRACK_RE = re.compile(
+    r"""
+    (?:
+        [\s._-]*
+        \(?
+        track
+        [\s._-]*
+        \d+
+        \)?
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _path_ext(path: str) -> str:
+    filename = Path(_safe_text(path).rstrip("/").split("/")[-1]).name
+    return Path(filename).suffix.lower()
+
+
+def _filename_stem_from_path(path: str) -> str:
+    filename = Path(_safe_text(path).rstrip("/").split("/")[-1]).name
+    return Path(filename).stem.strip()
+
+
+def _normalize_cd_set_name(name: str) -> str:
+    name = _safe_text(name)
+    name = Path(name).stem
+    name = _CD_TRACK_RE.sub("", name)
+    name = re.sub(r"\s+", " ", name)
+    name = name.strip(" ._-")
+    return name.lower()
+
+
+def _cue_matches_bin(cue_path: str, bin_path: str) -> bool:
+    cue_name = _normalize_cd_set_name(_filename_stem_from_path(cue_path))
+    bin_name = _normalize_cd_set_name(_filename_stem_from_path(bin_path))
+
+    if not cue_name or not bin_name:
+        return False
+
+    if cue_name == bin_name:
+        return True
+
+    if bin_name.startswith(cue_name):
+        return True
+
+    if cue_name.startswith(bin_name):
+        return True
+
+    return False
+
+
+def _looks_like_cd_track_bin(path: str) -> bool:
+    filename = Path(_safe_text(path).rstrip("/").split("/")[-1]).name
+
+    if not filename.lower().endswith(".bin"):
+        return False
+
+    return bool(_CD_TRACK_RE.search(Path(filename).stem))
+
+
+def _build_cue_lookup(rows: list[sqlite3.Row]) -> dict[str, list[str]]:
+    cue_lookup = {}
+
+    for row in rows:
+        path = _safe_text(row["FullPath"])
+        parent_dir = _safe_text(row["ParentDir"])
+
+        if _path_ext(path) != ".cue":
+            continue
+
+        cue_lookup.setdefault(parent_dir, []).append(path)
+
+    return cue_lookup
+
+
+def _should_hide_bin_entry(path: str, parent_dir: str, cue_lookup: dict[str, list[str]]) -> bool:
+    if _path_ext(path) != ".bin":
+        return False
+
+    matching_cues = cue_lookup.get(parent_dir, [])
+
+    for cue_path in matching_cues:
+        if _cue_matches_bin(cue_path, path):
+            return True
+
+    if _looks_like_cd_track_bin(path):
+        return True
+
+    return False
+
+
 def read_media_db_entries(
     local_path: Path,
     progress_callback=None,
@@ -303,14 +397,26 @@ def read_media_db_entries(
         """
 
         cursor.execute(query)
+        rows = cursor.fetchall()
+
+        cue_lookup = _build_cue_lookup(rows)
 
         scanned = 0
 
-        for row in cursor:
+        for row in rows:
             scanned += 1
 
             path = _safe_text(row["FullPath"])
             parent_dir = _safe_text(row["ParentDir"])
+
+            if _should_hide_bin_entry(path, parent_dir, cue_lookup):
+                if progress_callback and (scanned % 500 == 0 or scanned == total):
+                    try:
+                        progress_callback(1, scanned, {"total": total})
+                    except TypeError:
+                        progress_callback(scanned)
+                continue
+
             filename = _make_filename(path, parent_dir)
 
             title_name = _safe_text(row["TitleName"])

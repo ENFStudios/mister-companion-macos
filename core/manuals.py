@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import sys
 from pathlib import Path
@@ -11,6 +12,9 @@ REMOTE_LOCAL_DOCS_ROOT = "/media/fat/docs"
 
 def app_base_dir() -> Path:
     if getattr(sys, "frozen", False):
+        if platform.system().lower() == "darwin":
+            from core.app_paths import user_data_dir
+            return user_data_dir()
         return Path(sys.executable).resolve().parent
 
     return Path(__file__).resolve().parent.parent

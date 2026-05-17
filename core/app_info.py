@@ -1,5 +1,5 @@
 APP_NAME = "MiSTer Companion"
-APP_VERSION = "v4.1.0"
+APP_VERSION = "v4.3.0"
 APP_AUTHOR = "Anime0t4ku"
 
 GITHUB_OWNER = "ENFStudios"

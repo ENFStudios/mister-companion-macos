@@ -1,4 +1,4 @@
-import webbrowser
+from core.open_helpers import open_uri
 
 from PyQt6.QtWidgets import (
     QDialog,
@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ui.scaling import set_text_button_min_width
 from core.config import load_config
 from core.scripts_actions import (
     load_ra_viewer_config,
@@ -83,11 +84,9 @@ class RAViewerConfigDialog(QDialog):
         button_row.setSpacing(8)
 
         self.open_settings_button = QPushButton("Open in Browser")
-        self.open_settings_button.setFixedWidth(150)
-
+        set_text_button_min_width(self.open_settings_button, 150)
         self.use_saved_login_button = QPushButton("Use Saved Login")
-        self.use_saved_login_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.use_saved_login_button, 140)
         button_row.addWidget(self.open_settings_button)
         button_row.addWidget(self.use_saved_login_button)
         button_row.addStretch()
@@ -95,9 +94,8 @@ class RAViewerConfigDialog(QDialog):
         self.save_button = QPushButton("Save")
         self.cancel_button = QPushButton("Cancel")
 
-        self.save_button.setFixedWidth(100)
-        self.cancel_button.setFixedWidth(100)
-
+        set_text_button_min_width(self.save_button, 100)
+        set_text_button_min_width(self.cancel_button, 100)
         button_row.addWidget(self.save_button)
         button_row.addWidget(self.cancel_button)
 
@@ -109,7 +107,7 @@ class RAViewerConfigDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
     def open_ra_settings(self):
-        webbrowser.open(RA_SETTINGS_URL)
+        open_uri(RA_SETTINGS_URL)
 
     def get_stored_ra_credentials(self):
         config_data = {}

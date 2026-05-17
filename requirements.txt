@@ -3,3 +3,4 @@ paramiko
 requests
 websocket-client
 psutil
+pyserial

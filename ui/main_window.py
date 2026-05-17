@@ -1,5 +1,4 @@
 import sys
-import webbrowser
 
 from PyQt6.QtCore import QRect, QSize, QThread, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
@@ -31,6 +30,7 @@ from core.device_profiles import (
     get_profile_sync_roots,
     update_device,
 )
+from core.open_helpers import open_uri
 from core.profile_folder_sync import profile_assigned_to_ip, profile_removed, profile_renamed
 from core.theme import ASSETS_DIR, apply_theme, resolve_theme_mode
 from core.updater import (
@@ -46,6 +46,7 @@ from core.zaplauncher_db import rename_db
 from ui.dialogs.device_dialog import DeviceDialog
 from ui.dialogs.manuals_dialog import ManualsDialog
 from ui.dialogs.network_scanner_dialog import NetworkScannerDialog
+from ui.dialogs.remote_dialog import RemoteDialog
 from ui.dialogs.retroachievements_dialog import RetroAchievementsDialog
 from ui.dialogs.setup_notice_dialog import SetupNoticeDialog
 from ui.dialogs.support_dialog import SupportDialog
@@ -267,6 +268,10 @@ class MainWindow(QMainWindow):
         self.manuals_button.clicked.connect(self.open_manuals)
         bottom_bar.addWidget(self.manuals_button)
 
+        self.remote_button = QPushButton("Remote")
+        self.remote_button.clicked.connect(self.open_remote)
+        bottom_bar.addWidget(self.remote_button)
+
         self.retroachievements_button = QPushButton("RetroAchievements")
         self.retroachievements_button.clicked.connect(self.open_retroachievements)
         bottom_bar.addWidget(self.retroachievements_button)
@@ -377,6 +382,29 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(300, self.show_setup_notice)
         QTimer.singleShot(1500, self.check_for_updates_on_startup)
 
+    def open_remote(self):
+        if self._closing:
+            return
+
+        if self.is_offline_mode():
+            QMessageBox.information(
+                self,
+                "Remote",
+                "Remote is only available in Online Mode.",
+            )
+            return
+
+        if not self.connection.is_connected():
+            QMessageBox.information(
+                self,
+                "Remote",
+                "Connect to a MiSTer first before using Remote.",
+            )
+            return
+
+        dialog = RemoteDialog(self)
+        dialog.exec()
+
     def open_manuals(self):
         if self._closing:
             return
@@ -404,7 +432,7 @@ class MainWindow(QMainWindow):
         if self._closing:
             return
 
-        webbrowser.open(FEEDBACK_URL)
+        open_uri(FEEDBACK_URL)
 
     def apply_default_window_size(self):
         preferred_width = 1100
@@ -1003,6 +1031,14 @@ class MainWindow(QMainWindow):
 
         for tab in self._managed_tabs():
             self._update_tab_connection_state(tab, lightweight=lightweight)
+
+        if hasattr(self, "remote_button"):
+            self.remote_button.setEnabled(
+                self.is_online_mode() and self.connection.is_connected()
+            )
+
+        if hasattr(self, "manuals_button"):
+            self.manuals_button.setEnabled(self.is_online_mode())
 
     def refresh_current_tab(self, force: bool = False):
         if self._closing:

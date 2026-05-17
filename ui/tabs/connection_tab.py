@@ -1,8 +1,8 @@
 import time
-import webbrowser
 from pathlib import Path
 
 import requests
+from core.open_helpers import open_uri, open_local_folder
 from PyQt6.QtCore import QEvent, QTimer, Qt
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.scaling import set_text_button_min_width
 from core.config import save_config
 
 NEWSWIDGET_URL = "https://raw.githubusercontent.com/Anime0t4ku/mister-companion/main/newsfeed.json"
@@ -168,11 +169,9 @@ class ConnectionTab(QWidget):
         )
 
         self.edit_profile_btn = QPushButton("Edit")
-        self.edit_profile_btn.setFixedWidth(80)
-
+        set_text_button_min_width(self.edit_profile_btn, 80)
         self.delete_profile_btn = QPushButton("Delete")
-        self.delete_profile_btn.setFixedWidth(80)
-
+        set_text_button_min_width(self.delete_profile_btn, 80)
         saved_center_row = QHBoxLayout()
         saved_center_row.setSpacing(8)
         saved_center_row.addStretch()
@@ -331,8 +330,7 @@ class ConnectionTab(QWidget):
         self.offline_sd_input.setMaximumWidth(520)
 
         self.browse_sd_btn = QPushButton("Browse...")
-        self.browse_sd_btn.setFixedWidth(100)
-
+        set_text_button_min_width(self.browse_sd_btn, 100)
         offline_row.addWidget(self.offline_sd_input)
         offline_row.addWidget(self.browse_sd_btn)
         offline_row.addStretch()
@@ -383,8 +381,7 @@ class ConnectionTab(QWidget):
         news_header_row.setSpacing(8)
 
         self.hide_news_button = QPushButton("Hide")
-        self.hide_news_button.setFixedWidth(70)
-
+        set_text_button_min_width(self.hide_news_button, 70)
         news_header_row.addStretch()
         news_header_row.addWidget(self.hide_news_button)
         news_header_row.addStretch()
@@ -393,11 +390,11 @@ class ConnectionTab(QWidget):
         nav_row.setSpacing(8)
 
         self.news_prev_button = QPushButton("◀")
-        self.news_prev_button.setFixedWidth(36)
+        set_text_button_min_width(self.news_prev_button, 36)
         self.news_prev_button.hide()
 
         self.news_next_button = QPushButton("▶")
-        self.news_next_button.setFixedWidth(36)
+        set_text_button_min_width(self.news_next_button, 36)
         self.news_next_button.hide()
 
         self.news_counter_label = QLabel("")
@@ -420,8 +417,7 @@ class ConnectionTab(QWidget):
 
         self.news_button = QPushButton("")
         self.news_button.setVisible(False)
-        self.news_button.setFixedWidth(160)
-
+        set_text_button_min_width(self.news_button, 160)
         self.news_date_label = QLabel("")
         self.news_date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.news_date_label.setStyleSheet("color: gray;")
@@ -652,7 +648,7 @@ class ConnectionTab(QWidget):
 
     def open_news_link(self):
         if self.news_url:
-            webbrowser.open(self.news_url)
+            open_uri(self.news_url)
 
     def handle_mode_changed(self):
         if self.mode_switch_in_progress:
@@ -892,7 +888,7 @@ class ConnectionTab(QWidget):
             )
             return
 
-        webbrowser.open(str(path))
+        open_local_folder(path)
 
     def handle_clear_sd_card(self):
         self.offline_sd_input.clear()

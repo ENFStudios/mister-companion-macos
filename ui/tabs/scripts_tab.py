@@ -1,5 +1,5 @@
 import traceback
-import webbrowser
+from core.open_helpers import open_uri
 
 from PyQt6.QtCore import QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.scaling import set_text_button_min_width
 from core.config import save_config
 from core.update_all_offline import run_update_all_offline
 from core.scripts_actions import (
@@ -434,7 +435,7 @@ class ScriptsTab(QWidget):
         bottom_actions_row.addStretch()
 
         self.open_scripts_folder_button = QPushButton("Open Scripts Folder")
-        self.open_scripts_folder_button.setFixedWidth(180)
+        set_text_button_min_width(self.open_scripts_folder_button, 180)
         bottom_actions_row.addWidget(self.open_scripts_folder_button)
 
         bottom_actions_row.addStretch()
@@ -449,7 +450,7 @@ class ScriptsTab(QWidget):
         header_row.addStretch()
 
         self.hide_console_button = QPushButton("Hide")
-        self.hide_console_button.setFixedWidth(70)
+        set_text_button_min_width(self.hide_console_button, 70)
         header_row.addWidget(self.hide_console_button)
         console_layout.addLayout(header_row)
 
@@ -533,17 +534,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_update_button = QPushButton("Install")
-        self.install_update_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.install_update_button, 170)
         self.uninstall_update_button = QPushButton("Uninstall")
-        self.uninstall_update_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.uninstall_update_button, 170)
         self.configure_update_button = QPushButton("Configure")
-        self.configure_update_button.setFixedWidth(190)
-
+        set_text_button_min_width(self.configure_update_button, 190)
         self.run_update_button = QPushButton("Run")
-        self.run_update_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.run_update_button, 170)
         layout.addLayout(
             self._build_button_row(
                 self.install_update_button,
@@ -567,17 +564,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_zaparoo_button = QPushButton("Install")
-        self.install_zaparoo_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.install_zaparoo_button, 170)
         self.enable_zaparoo_service_button = QPushButton("Enable Start on Boot")
-        self.enable_zaparoo_service_button.setFixedWidth(190)
-
+        set_text_button_min_width(self.enable_zaparoo_service_button, 190)
         self.open_zaparoo_web_button = QPushButton("Open Web Interface")
-        self.open_zaparoo_web_button.setFixedWidth(190)
-
+        set_text_button_min_width(self.open_zaparoo_web_button, 190)
         self.uninstall_zaparoo_button = QPushButton("Uninstall")
-        self.uninstall_zaparoo_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.uninstall_zaparoo_button, 170)
         layout.addLayout(
             self._build_button_row(
                 self.install_zaparoo_button,
@@ -601,11 +594,9 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_migrate_button = QPushButton("Install")
-        self.install_migrate_button.setFixedWidth(180)
-
+        set_text_button_min_width(self.install_migrate_button, 180)
         self.uninstall_migrate_button = QPushButton("Uninstall")
-        self.uninstall_migrate_button.setFixedWidth(180)
-
+        set_text_button_min_width(self.uninstall_migrate_button, 180)
         layout.addLayout(
             self._build_button_row(
                 self.install_migrate_button,
@@ -623,23 +614,17 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_cifs_button = QPushButton("Install")
-        self.install_cifs_button.setFixedWidth(120)
-
+        set_text_button_min_width(self.install_cifs_button, 120)
         self.configure_cifs_button = QPushButton("Configure")
-        self.configure_cifs_button.setFixedWidth(120)
-
+        set_text_button_min_width(self.configure_cifs_button, 120)
         self.mount_cifs_button = QPushButton("Mount")
-        self.mount_cifs_button.setFixedWidth(120)
-
+        set_text_button_min_width(self.mount_cifs_button, 120)
         self.unmount_cifs_button = QPushButton("Unmount")
-        self.unmount_cifs_button.setFixedWidth(120)
-
+        set_text_button_min_width(self.unmount_cifs_button, 120)
         self.remove_cifs_config_button = QPushButton("Remove Config")
-        self.remove_cifs_config_button.setFixedWidth(130)
-
+        set_text_button_min_width(self.remove_cifs_config_button, 130)
         self.uninstall_cifs_button = QPushButton("Uninstall")
-        self.uninstall_cifs_button.setFixedWidth(120)
-
+        set_text_button_min_width(self.uninstall_cifs_button, 120)
         layout.addLayout(
             self._build_button_row(
                 self.install_cifs_button,
@@ -665,11 +650,9 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_auto_time_button = QPushButton("Install")
-        self.install_auto_time_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.install_auto_time_button, 140)
         self.uninstall_auto_time_button = QPushButton("Uninstall")
-        self.uninstall_auto_time_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.uninstall_auto_time_button, 140)
         layout.addLayout(
             self._build_button_row(
                 self.install_auto_time_button,
@@ -687,17 +670,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_dav_browser_button = QPushButton("Install")
-        self.install_dav_browser_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.install_dav_browser_button, 140)
         self.configure_dav_browser_button = QPushButton("Configure")
-        self.configure_dav_browser_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.configure_dav_browser_button, 140)
         self.remove_dav_browser_config_button = QPushButton("Remove Config")
-        self.remove_dav_browser_config_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.remove_dav_browser_config_button, 140)
         self.uninstall_dav_browser_button = QPushButton("Uninstall")
-        self.uninstall_dav_browser_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.uninstall_dav_browser_button, 140)
         layout.addLayout(
             self._build_button_row(
                 self.install_dav_browser_button,
@@ -721,23 +700,17 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_ftp_save_sync_button = QPushButton("Install")
-        self.install_ftp_save_sync_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.install_ftp_save_sync_button, 140)
         self.configure_ftp_save_sync_button = QPushButton("Configure")
-        self.configure_ftp_save_sync_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.configure_ftp_save_sync_button, 140)
         self.enable_ftp_save_sync_service_button = QPushButton("Enable Start on Boot")
-        self.enable_ftp_save_sync_service_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.enable_ftp_save_sync_service_button, 140)
         self.disable_ftp_save_sync_service_button = QPushButton("Disable Start on Boot")
-        self.disable_ftp_save_sync_service_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.disable_ftp_save_sync_service_button, 140)
         self.remove_ftp_save_sync_config_button = QPushButton("Remove Config")
-        self.remove_ftp_save_sync_config_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.remove_ftp_save_sync_config_button, 140)
         self.uninstall_ftp_save_sync_button = QPushButton("Uninstall")
-        self.uninstall_ftp_save_sync_button.setFixedWidth(140)
-
+        set_text_button_min_width(self.uninstall_ftp_save_sync_button, 140)
         layout.addLayout(
             self._build_button_row(
                 self.install_ftp_save_sync_button,
@@ -763,11 +736,9 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_static_wallpaper_button = QPushButton("Install")
-        self.install_static_wallpaper_button.setFixedWidth(150)
-
+        set_text_button_min_width(self.install_static_wallpaper_button, 150)
         self.uninstall_static_wallpaper_button = QPushButton("Uninstall")
-        self.uninstall_static_wallpaper_button.setFixedWidth(150)
-
+        set_text_button_min_width(self.uninstall_static_wallpaper_button, 150)
         layout.addLayout(
             self._build_button_row(
                 self.install_static_wallpaper_button,
@@ -785,17 +756,13 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_syncthing_button = QPushButton("Install")
-        self.install_syncthing_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.install_syncthing_button, 170)
         self.toggle_syncthing_boot_button = QPushButton("Enable Start on Boot")
-        self.toggle_syncthing_boot_button.setFixedWidth(190)
-
+        set_text_button_min_width(self.toggle_syncthing_boot_button, 190)
         self.open_syncthing_web_config_button = QPushButton("Open Web Config")
-        self.open_syncthing_web_config_button.setFixedWidth(190)
-
+        set_text_button_min_width(self.open_syncthing_web_config_button, 190)
         self.uninstall_syncthing_button = QPushButton("Uninstall")
-        self.uninstall_syncthing_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.uninstall_syncthing_button, 170)
         layout.addLayout(
             self._build_button_row(
                 self.install_syncthing_button,
@@ -819,14 +786,11 @@ class ScriptsTab(QWidget):
         layout.setSpacing(10)
 
         self.install_ra_viewer_button = QPushButton("Install")
-        self.install_ra_viewer_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.install_ra_viewer_button, 170)
         self.edit_ra_viewer_config_button = QPushButton("Edit Config")
-        self.edit_ra_viewer_config_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.edit_ra_viewer_config_button, 170)
         self.uninstall_ra_viewer_button = QPushButton("Uninstall")
-        self.uninstall_ra_viewer_button.setFixedWidth(170)
-
+        set_text_button_min_width(self.uninstall_ra_viewer_button, 170)
         layout.addLayout(
             self._build_button_row(
                 self.install_ra_viewer_button,
@@ -1760,7 +1724,7 @@ class ScriptsTab(QWidget):
             )
             return
 
-        webbrowser.open(f"http://{host}:7497/app/")
+        open_uri(f"http://{host}:7497/app/")
 
     def uninstall_zaparoo(self):
         if self.is_offline_mode():
@@ -2600,7 +2564,7 @@ class ScriptsTab(QWidget):
             )
             return
 
-        webbrowser.open(f"http://{host}:8384")
+        open_uri(f"http://{host}:8384")
 
     def uninstall_syncthing(self):
         if self.is_offline_mode():

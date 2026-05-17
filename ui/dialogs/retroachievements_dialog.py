@@ -1,6 +1,6 @@
-import webbrowser
 
 import requests
+from core.open_helpers import open_uri
 from PyQt6.QtCore import QThread, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QPixmap
 from PyQt6.QtWidgets import (
@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.scaling import set_text_button_min_width
 from core.config import save_config
 from core.ra_image_cache import RAImageWorker, get_cached_image_bytes
 from core.retroachievements_api import get_user_summary
@@ -535,8 +536,7 @@ class RetroAchievementsDialog(QDialog):
         title.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
 
         self.toggle_login_button = QPushButton("Show Login")
-        self.toggle_login_button.setFixedWidth(100)
-
+        set_text_button_min_width(self.toggle_login_button, 100)
         header_row.addWidget(title)
         header_row.addStretch()
         header_row.addWidget(self.toggle_login_button)
@@ -557,11 +557,9 @@ class RetroAchievementsDialog(QDialog):
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
 
         self.show_key_button = QPushButton("Show")
-        self.show_key_button.setFixedWidth(70)
-
+        set_text_button_min_width(self.show_key_button, 70)
         self.get_api_key_button = QPushButton("Get API Key")
-        self.get_api_key_button.setFixedWidth(110)
-
+        set_text_button_min_width(self.get_api_key_button, 110)
         self.save_login_button = QPushButton("Save / Login")
         self.refresh_button = QPushButton("Refresh")
         self.close_button = QPushButton("Close")
@@ -787,7 +785,7 @@ class RetroAchievementsDialog(QDialog):
             self.show_key_button.setText("Show")
 
     def open_api_key_page(self):
-        webbrowser.open(RA_SETTINGS_URL)
+        open_uri(RA_SETTINGS_URL)
 
     def refresh_data(self):
         username = self.username_input.text().strip()

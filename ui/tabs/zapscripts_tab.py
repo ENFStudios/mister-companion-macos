@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
+from ui.scaling import set_text_button_min_width
 from core.config import load_config, save_config
 from core.zapscripts import (
     fetch_media_from_db_cache,
@@ -28,6 +29,8 @@ from core.zapscripts import (
 from core.zaplauncher_db import get_media_db_path, get_last_scan_time
 from ui.dialogs.zapscripts_controls_dialog import ZapScriptsControlsDialog
 from ui.dialogs.zapscripts_scan_notice_dialog import ZapScriptsScanNoticeDialog
+from ui.dialogs.nfc_writer_dialog import NFCWriterDialog
+from ui.dialogs.nfc_reader_dialog import NFCReaderDialog
 
 
 REMOTE_MEDIA_DB_PATH = "/media/fat/zaparoo/media.db"
@@ -217,7 +220,7 @@ class ZapScriptsTab(QWidget):
 
         self.scan_btn = QPushButton("Scan")
         self.scan_btn.clicked.connect(self._handle_scan_button)
-        self.scan_btn.setFixedWidth(80)
+        set_text_button_min_width(self.scan_btn, 80)
 
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
@@ -261,10 +264,18 @@ class ZapScriptsTab(QWidget):
         self.launch_btn = QPushButton("Launch Selected")
         self.launch_btn.clicked.connect(self._launch)
 
+        self.nfc_btn = QPushButton("Write to NFC Token")
+        self.nfc_btn.clicked.connect(self._write_selected_to_nfc)
+
+        self.read_nfc_btn = QPushButton("Read NFC Token")
+        self.read_nfc_btn.clicked.connect(self._open_nfc_reader)
+
         self.controls_btn = QPushButton("Controls")
         self.controls_btn.clicked.connect(self._open_controls)
 
         buttons.addWidget(self.launch_btn)
+        buttons.addWidget(self.nfc_btn)
+        buttons.addWidget(self.read_nfc_btn)
         buttons.addWidget(self.controls_btn)
 
         right_layout.addWidget(self.search)
@@ -315,11 +326,15 @@ class ZapScriptsTab(QWidget):
             self.scan_btn.setText("Scan")
             self.scan_btn.setEnabled(True)
             self.launch_btn.setEnabled(True)
+            self.nfc_btn.setEnabled(True)
+            self.read_nfc_btn.setEnabled(True)
             self.controls_btn.setEnabled(True)
         else:
             self.scan_btn.setText("Scan")
             self.scan_btn.setEnabled(False)
             self.launch_btn.setEnabled(False)
+            self.nfc_btn.setEnabled(False)
+            self.read_nfc_btn.setEnabled(False)
             self.controls_btn.setEnabled(False)
 
         self._clear_refreshing_status_style()
@@ -341,6 +356,8 @@ class ZapScriptsTab(QWidget):
 
         self.scan_btn.setEnabled(False)
         self.launch_btn.setEnabled(False)
+        self.nfc_btn.setEnabled(False)
+        self.read_nfc_btn.setEnabled(False)
         self.controls_btn.setEnabled(False)
 
     def _clear_refreshing_status_style(self):
@@ -384,6 +401,8 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setText("Scan")
         self.scan_btn.setEnabled(False)
         self.launch_btn.setEnabled(False)
+        self.nfc_btn.setEnabled(False)
+        self.read_nfc_btn.setEnabled(False)
         self.controls_btn.setEnabled(False)
         self.search.setEnabled(False)
         self.systems.setEnabled(False)
@@ -608,6 +627,8 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setText("Scan")
         self.scan_btn.setEnabled(connected)
         self.launch_btn.setEnabled(connected)
+        self.nfc_btn.setEnabled(connected)
+        self.read_nfc_btn.setEnabled(connected)
         self.controls_btn.setEnabled(connected)
 
     def _on_load_error(self, message):
@@ -632,6 +653,8 @@ class ZapScriptsTab(QWidget):
         connected = self.connection.is_connected() and not self._is_offline_mode()
         self.scan_btn.setEnabled(connected)
         self.launch_btn.setEnabled(connected)
+        self.nfc_btn.setEnabled(connected)
+        self.read_nfc_btn.setEnabled(connected)
         self.controls_btn.setEnabled(connected)
 
     def _on_load_worker_finished(self, worker):
@@ -715,6 +738,8 @@ class ZapScriptsTab(QWidget):
         self.scan_btn.setText("Abort")
         self.scan_btn.setEnabled(True)
         self.launch_btn.setEnabled(False)
+        self.nfc_btn.setEnabled(False)
+        self.read_nfc_btn.setEnabled(False)
         self.controls_btn.setEnabled(False)
 
         self.progress.setRange(0, 0)
@@ -769,10 +794,14 @@ class ZapScriptsTab(QWidget):
         self._rebuild_systems(systems)
         self._filter()
 
+        connected = not self._is_offline_mode() and self.connection.is_connected()
+
         self.scan_btn.setText("Scan")
-        self.scan_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
-        self.launch_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
-        self.controls_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
+        self.scan_btn.setEnabled(connected)
+        self.launch_btn.setEnabled(connected)
+        self.nfc_btn.setEnabled(connected)
+        self.read_nfc_btn.setEnabled(connected)
+        self.controls_btn.setEnabled(connected)
         self.expected_total = 0
         self._update_idle_status(check_zaparoo_state=False)
 
@@ -785,10 +814,15 @@ class ZapScriptsTab(QWidget):
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.status.setText("Scan aborted")
+
+        connected = not self._is_offline_mode() and self.connection.is_connected()
+
         self.scan_btn.setText("Scan")
-        self.scan_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
-        self.launch_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
-        self.controls_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
+        self.scan_btn.setEnabled(connected)
+        self.launch_btn.setEnabled(connected)
+        self.nfc_btn.setEnabled(connected)
+        self.read_nfc_btn.setEnabled(connected)
+        self.controls_btn.setEnabled(connected)
         self.expected_total = 0
         self._refresh_after_scan = False
 
@@ -802,10 +836,15 @@ class ZapScriptsTab(QWidget):
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.status.setText(f"Scan failed: {message}")
+
+        connected = not self._is_offline_mode() and self.connection.is_connected()
+
         self.scan_btn.setText("Scan")
-        self.scan_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
-        self.launch_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
-        self.controls_btn.setEnabled(not self._is_offline_mode() and self.connection.is_connected())
+        self.scan_btn.setEnabled(connected)
+        self.launch_btn.setEnabled(connected)
+        self.nfc_btn.setEnabled(connected)
+        self.read_nfc_btn.setEnabled(connected)
+        self.controls_btn.setEnabled(connected)
         self.expected_total = 0
         self._refresh_after_scan = False
 
@@ -912,6 +951,50 @@ class ZapScriptsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Launch failed", str(e))
 
+    def _normalize_nfc_payload_path(self, path: str) -> str:
+        payload = (path or "").strip().replace("\\", "/")
+
+        prefixes = [
+            "/media/fat/cifs/",
+            "media/fat/cifs/",
+            "/media/fat/",
+            "media/fat/",
+        ]
+
+        for prefix in prefixes:
+            if payload.lower().startswith(prefix):
+                payload = payload[len(prefix):]
+                break
+
+        return payload.lstrip("/")
+
+    def _write_selected_to_nfc(self):
+        if self._is_offline_mode():
+            return
+
+        payload = ""
+
+        current_item = self.list.currentItem()
+        if current_item:
+            entry = current_item.data(Qt.ItemDataRole.UserRole)
+            if entry:
+                raw_path = (entry.get("path") or "").strip()
+                payload = self._normalize_nfc_payload_path(raw_path)
+
+        dlg = NFCWriterDialog(payload=payload, parent=self)
+        dlg.exec()
+
+    def _open_nfc_reader(self):
+        if self._is_offline_mode():
+            return
+
+        if not self.connection.is_connected():
+            QMessageBox.warning(self, "Not connected", "Please connect to your MiSTer first.")
+            return
+
+        dlg = NFCReaderDialog(connection=self.connection, parent=self)
+        dlg.exec()
+
     def _open_controls(self):
         if self._is_offline_mode():
             return
@@ -954,6 +1037,8 @@ class ZapScriptsTab(QWidget):
 
         self.scan_btn.setEnabled(True if self.worker is not None else connected)
         self.launch_btn.setEnabled(connected and self.worker is None)
+        self.nfc_btn.setEnabled(connected and self.worker is None)
+        self.read_nfc_btn.setEnabled(connected and self.worker is None)
         self.controls_btn.setEnabled(connected and self.worker is None)
 
         self.search.setEnabled(True)

@@ -188,10 +188,14 @@ def apply_font_scale(app: QApplication, ui_scale_percent=100):
     factor = ui_scale_factor(ui_scale_percent)
     font = QFont(_ORIGINAL_FONT)
 
-    if _ORIGINAL_FONT.pointSizeF() > 0:
-        font.setPointSizeF(max(1.0, _ORIGINAL_FONT.pointSizeF() * factor))
-    elif _ORIGINAL_FONT.pixelSize() > 0:
-        font.setPixelSize(max(1, round(_ORIGINAL_FONT.pixelSize() * factor)))
+    if platform.system() == "Darwin":
+        base_point_size = 13.0
+    elif platform.system() == "Windows":
+        base_point_size = 9.0
+    else:
+        base_point_size = 9.0
+
+    font.setPointSizeF(max(1.0, base_point_size * factor))
 
     app.setFont(font)
 

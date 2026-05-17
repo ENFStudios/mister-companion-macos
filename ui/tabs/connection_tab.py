@@ -109,10 +109,10 @@ class ConnectionTab(QWidget):
         show_news_button_width = self.show_news_button.sizeHint().width()
 
         self.show_news_button_placeholder = QWidget()
-        self.show_news_button_placeholder.setFixedWidth(show_news_button_width)
+        self.show_news_button_placeholder.setMinimumWidth(show_news_button_width)
 
         self.show_news_button_container = QWidget()
-        self.show_news_button_container.setFixedWidth(show_news_button_width)
+        self.show_news_button_container.setMinimumWidth(show_news_button_width)
 
         show_news_button_layout = QHBoxLayout(self.show_news_button_container)
         show_news_button_layout.setContentsMargins(0, 0, 0, 0)

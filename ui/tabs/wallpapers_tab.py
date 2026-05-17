@@ -818,7 +818,8 @@ class WallpapersTab(QWidget):
         self.current_worker.log_line.connect(self.append_console)
         self.current_worker.success.connect(self.on_task_success)
         self.current_worker.error.connect(self.on_task_error)
-        self.current_worker.finished_task.connect(self.on_task_finished)
+        self.current_worker.finished.connect(self.on_task_finished)
+        self.current_worker.finished.connect(self.current_worker.deleteLater)
         self.current_worker.start()
 
     def on_task_success(self, message: str):

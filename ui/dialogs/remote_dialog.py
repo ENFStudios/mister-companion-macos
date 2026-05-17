@@ -68,10 +68,6 @@ class RemoteDaemonCommandWorker(QThread):
 
 class RemoteDialog(QDialog):
     RESIZE_MARGIN = 7
-    CONTROL_BUTTON_WIDTH = 60
-    CONTROL_BUTTON_HEIGHT = 34
-    SYSTEM_BUTTON_WIDTH = 70
-    SYSTEM_BUTTON_HEIGHT = 32
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -90,14 +86,23 @@ class RemoteDialog(QDialog):
         self._resize_start_pos = QPoint()
         self._resize_start_geometry = QRect()
 
+        scale = 1.0
+        if parent is not None and hasattr(parent, "get_ui_scale_percent"):
+            scale = parent.get_ui_scale_percent() / 100.0
+
+        self.CONTROL_BUTTON_WIDTH = int(60 * scale)
+        self.CONTROL_BUTTON_HEIGHT = int(34 * scale)
+        self.SYSTEM_BUTTON_WIDTH = int(70 * scale)
+        self.SYSTEM_BUTTON_HEIGHT = int(32 * scale)
+
         self.setWindowTitle("Remote")
         self.setWindowFlags(
             Qt.WindowType.Dialog
             | Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowSystemMenuHint
         )
-        self.resize(820, 820)
-        self.setMinimumSize(760, 560)
+        self.resize(int(820 * scale), int(820 * scale))
+        self.setMinimumSize(int(760 * scale), int(560 * scale))
         self.setSizeGripEnabled(False)
         self.setMouseTracking(True)
 

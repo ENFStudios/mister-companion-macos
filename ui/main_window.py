@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         self._closing = False
         self._tab_refresh_generation = 0
 
-        self.setMinimumSize(1100, 830)
+        self.setMinimumSize(1100, 830)  # updated after scale is read
 
         self.setWindowTitle(APP_NAME)
         self.apply_default_window_size()
@@ -317,6 +317,8 @@ class MainWindow(QMainWindow):
         if scale_index < 0:
             scale_index = self.scale_combo.findText(f"{DEFAULT_UI_SCALE_PERCENT}%")
         self.scale_combo.setCurrentIndex(max(0, scale_index))
+
+        self._update_minimum_size(saved_scale_percent)
 
         theme_index_map = {"auto": 0, "light": 1, "dark": 2}
         self.theme_combo.setCurrentIndex(theme_index_map.get(saved_theme, 0))
@@ -433,6 +435,10 @@ class MainWindow(QMainWindow):
             return
 
         open_uri(FEEDBACK_URL)
+
+    def _update_minimum_size(self, scale_percent: int):
+        factor = scale_percent / 100.0
+        self.setMinimumSize(int(1100 * factor), int(830 * factor))
 
     def apply_default_window_size(self):
         preferred_width = 1100
@@ -777,6 +783,8 @@ class MainWindow(QMainWindow):
             return
 
         percent = self.normalize_ui_scale_percent(self.scale_combo.currentText())
+
+        self._update_minimum_size(percent)
 
         if self.config_data.get("ui_scale_percent") == percent:
             self.refresh_theme()

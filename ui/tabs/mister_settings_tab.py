@@ -1455,7 +1455,7 @@ class MiSTerSettingsTab(QWidget):
         self.easy_font_combo.blockSignals(False)
 
     def start_font_scan(self):
-        if self.font_worker is not None and self.font_worker.isRunning():
+        if self.font_worker is not None:
             return
 
         offline_mode = self.is_offline_mode()
@@ -1480,6 +1480,7 @@ class MiSTerSettingsTab(QWidget):
         self.font_worker.result.connect(self.on_font_scan_result)
         self.font_worker.failed.connect(self.on_font_scan_failed)
         self.font_worker.finished.connect(self.on_font_scan_finished)
+        self.font_worker.finished.connect(self.font_worker.deleteLater)
         self.font_worker.start()
 
     def on_font_scan_result(self, fonts):
@@ -1495,10 +1496,7 @@ class MiSTerSettingsTab(QWidget):
 
     def on_font_scan_finished(self):
         self.font_scan_scheduled = False
-
-        if self.font_worker is not None:
-            self.font_worker.deleteLater()
-            self.font_worker = None
+        self.font_worker = None
 
     def extract_font_selection_from_ini_text(self, ini_text):
         if not ini_text:

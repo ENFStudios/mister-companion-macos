@@ -744,7 +744,8 @@ class FlashTab(QWidget):
         self.current_worker.log_line.connect(self.append_log)
         self.current_worker.success.connect(self.on_task_success)
         self.current_worker.error.connect(self.on_task_error)
-        self.current_worker.finished_task.connect(self.on_task_finished)
+        self.current_worker.finished.connect(self.on_task_finished)
+        self.current_worker.finished.connect(self.current_worker.deleteLater)
 
         if emit_drives:
             self.current_worker.drives_loaded.connect(self.populate_drives)

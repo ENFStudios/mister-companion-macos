@@ -764,10 +764,10 @@ class ExtrasTab(QWidget):
         self.update_details_panel()
 
     def refresh_status(self):
-        if self.current_worker is not None and self.current_worker.isRunning():
+        if self.current_worker is not None:
             return
 
-        if self.status_worker is not None and self.status_worker.isRunning():
+        if self.status_worker is not None:
             return
 
         if self.is_offline_mode():
@@ -790,7 +790,8 @@ class ExtrasTab(QWidget):
         )
         self.status_worker.result.connect(self.on_status_worker_result)
         self.status_worker.error.connect(self.on_status_worker_error)
-        self.status_worker.finished_status.connect(self.on_status_worker_finished)
+        self.status_worker.finished.connect(self.on_status_worker_finished)
+        self.status_worker.finished.connect(self.status_worker.deleteLater)
         self.status_worker.start()
 
     def on_status_worker_result(self, results):
@@ -920,7 +921,8 @@ class ExtrasTab(QWidget):
         self.current_worker.log_line.connect(self.append_console_line)
         self.current_worker.success.connect(self.on_worker_success)
         self.current_worker.error.connect(self.on_worker_error)
-        self.current_worker.finished_task.connect(self.on_worker_finished)
+        self.current_worker.finished.connect(self.on_worker_finished)
+        self.current_worker.finished.connect(self.current_worker.deleteLater)
         self.current_worker.task_result.connect(self.on_worker_result)
 
         self.extra_list.setEnabled(False)

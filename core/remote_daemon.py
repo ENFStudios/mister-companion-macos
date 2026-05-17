@@ -19,7 +19,10 @@ REMOTE_STARTUP_PATH = "/media/fat/linux/user-startup.sh"
 
 def app_base_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys._MEIPASS)
+        if hasattr(sys, "_MEIPASS"):
+            return Path(sys._MEIPASS)
+        # py2app: Contents/Resources/lib/python3.14/core/remote_daemon.py → 4 levels up = Contents/Resources/
+        return Path(__file__).resolve().parent.parent.parent.parent
     return Path(__file__).resolve().parent.parent
 
 

@@ -22,6 +22,7 @@ DATA_FILES = [
         "assets/scripts.svg",
         "assets/wallpapers.svg",
         "assets/zapscripts.svg",
+        "assets/companion_remote.sh",
     ]),
 ]
 
